@@ -1,5 +1,0 @@
-writePointSet.C
-writePatch.C
-setSet.C
-
-EXE = $(FOAM_APPBIN)/setSet
