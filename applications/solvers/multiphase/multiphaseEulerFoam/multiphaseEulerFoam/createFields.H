@@ -8,8 +8,8 @@ autoPtr<phaseSystem> fluidPtr
 (
     phaseSystem::New(mesh)
 );
-phaseSystem& fluid = fluidPtr();
-phaseSystem::phaseModelList& phases = fluid.phases();
+phaseSystem& fluid = fluidPtr(); // define fluid
+phaseSystem::phaseModelList& phases = fluid.phases(); // define phase
 
 dimensionedScalar pMin
 (
@@ -23,7 +23,7 @@ dimensionedScalar pMin
 volScalarField& p = phases[0].thermoRef().p();
 
 Info<< "Reading field p_rgh\n" << endl;
-volScalarField p_rgh
+volScalarField p_rgh // using p_rgh
 (
     IOobject
     (
