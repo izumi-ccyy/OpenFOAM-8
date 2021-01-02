@@ -107,7 +107,7 @@ Foam::phaseSystem::phasePairs() const
     return phasePairs_;
 }
 
-
+// return the other phase of two phases
 inline const Foam::phaseModel& Foam::phaseSystem::otherPhase
 (
     const phaseModel& phase
