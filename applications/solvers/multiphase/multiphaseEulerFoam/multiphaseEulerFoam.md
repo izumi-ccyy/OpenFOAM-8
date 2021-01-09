@@ -1,6 +1,53 @@
 # multiphaseEulerFoam
 
-## pphaseSystems
+- [multiphaseEulerFoam](#multiphaseeulerfoam)
+  - [phaseSystems](#phasesystems)
+    - [phaseSystem](#phasesystem)
+      - [phaseSystem.H](#phasesystemh)
+      - [phaseSystemI.H](#phasesystemih)
+      - [phaseSystemNew.C](#phasesystemnewc)
+      - [phaseSystem.C](#phasesystemc)
+        - [calcPhi](#calcphi)
+        - [generatePairs](#generatepairs)
+        - [sumAlphaMoving](#sumalphamoving)
+        - [setMixtureU](#setmixtureu)
+        - [setMixturePhi](#setmixturephi)
+        - [nHatfv](#nhatfv)
+        - [nHatf](#nhatf)
+        - [correctContactAngle](#correctcontactangle)
+        - [K](#k)
+        - [Constructors 1: phaseSystem](#constructors-1-phasesystem)
+        - [Destructor ~phaseSystem](#destructor-phasesystem)
+        - [rho](#rho)
+        - [U](#u)
+        - [E](#e)
+        - [sigma1](#sigma1)
+        - [sigma2](#sigma2)
+        - [nearInterface](#nearinterface)
+        - [dmdtf](#dmdtf)
+        - [dmdts](#dmdts)
+        - [incompressible](#incompressible)
+        - [implicitPhasePressure](#implicitphasepressure)
+        - [surfaceTension](#surfacetension)
+        - [correct](#correct)
+        - [correctContinuityError](#correctcontinuityerror)
+        - [correctKinematics](#correctkinematics)
+        - [correctThermo](#correctthermo)
+        - [correctReactions](#correctreactions)
+        - [correctSpecies](#correctspecies)
+        - [correctTurbulelnce](#correctturbulelnce)
+        - [correctEnergyTransport](#correctenergytransport)
+        - [read](#read)
+        - [byDt1](#bydt1)
+        - [byDt2](#bydt2)
+      - [phaseSystemSolve.C](#phasesystemsolvec)
+  - [multiPhaseEulerFoam](#multiphaseeulerfoam-1)
+    - [createFieldRefs.H](#createfieldrefsh)
+    - [createFields.H](#createfieldsh)
+    - [CourantNo.H](#courantnoh)
+    - [setDeltaT.H](#setdeltath)
+
+## phaseSystems
 
 ### phaseSystem
 
@@ -807,4 +854,491 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::dmdtf
     );
 }
 ```
+
+$$
+dmdtf = 0
+$$
+
+##### dmdts
+
+```cpp
+Foam::PtrList<Foam::volScalarField> Foam::phaseSystem::dmdts() const
+{
+    return PtrList<volScalarField>(phaseModels_.size());
+}
+```
+
+##### incompressible
+
+```cpp
+bool Foam::phaseSystem::incompressible() const
+{
+    forAll(phaseModels_, phasei)
+    {
+        if (!phaseModels_[phasei].incompressible())
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+```
+
+if incompressible return `True`, else return `False`
+
+##### implicitPhasePressure
+
+```cpp
+bool Foam::phaseSystem::implicitPhasePressure(const phaseModel& phase) const
+{
+    return false;
+}
+
+
+bool Foam::phaseSystem::implicitPhasePressure() const
+{
+    return false;
+}
+```
+
+##### surfaceTension
+
+```cpp
+Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::surfaceTension
+(
+    const phaseModel& phase1
+) const
+{
+    tmp<surfaceScalarField> tSurfaceTension
+    (
+        surfaceScalarField::New
+        (
+            "surfaceTension",
+            mesh_,
+            dimensionedScalar(dimensionSet(1, -2, -2, 0, 0), 0)
+        )
+    );
+
+    forAll(phases(), phasej)
+    {
+        const phaseModel& phase2 = phases()[phasej];
+
+        if (&phase2 != &phase1)
+        {
+            phasePairKey key12(phase1.name(), phase2.name());
+
+            cAlphaTable::const_iterator cAlpha(cAlphas_.find(key12));
+
+            if (cAlpha != cAlphas_.end())
+            {
+                tSurfaceTension.ref() +=
+                    fvc::interpolate(sigma(key12)*K(phase1, phase2))
+                   *(
+                        fvc::interpolate(phase2)*fvc::snGrad(phase1)
+                      - fvc::interpolate(phase1)*fvc::snGrad(phase2)
+                    );
+            }
+        }
+    }
+
+    return tSurfaceTension;
+}
+```
+
+$$
+tSurfaceTension = \sum_{i=2}^N \sigma K (phase_i \nabla phase_1 - phase_1 \nabla phase_i)
+$$
+
+##### correct
+
+```cpp
+void Foam::phaseSystem::correct()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correct();
+    }
+}
+```
+
+##### correctContinuityError
+
+```cpp
+void Foam::phaseSystem::correctContinuityError()
+{
+    const PtrList<volScalarField> dmdts = this->dmdts();
+
+    forAll(movingPhaseModels_, movingPhasei)
+    {
+        phaseModel& phase = movingPhaseModels_[movingPhasei];
+        const volScalarField& alpha = phase;
+        volScalarField& rho = phase.thermoRef().rho();
+
+        volScalarField source
+        (
+            volScalarField::New
+            (
+                IOobject::groupName("source", phase.name()),
+                mesh_,
+                dimensionedScalar(dimDensity/dimTime, 0)
+            )
+        );
+
+        if (fvOptions().appliesToField(rho.name()))
+        {
+            source += fvOptions()(alpha, rho)&rho;
+        }
+
+        if (dmdts.set(phase.index()))
+        {
+            source += dmdts[phase.index()];
+        }
+
+        phase.correctContinuityError(source);
+    }
+}
+```
+
+##### correctKinematics
+
+```cpp
+void Foam::phaseSystem::correctKinematics()
+{
+    bool updateDpdt = false;
+
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctKinematics();
+
+        updateDpdt = updateDpdt || phaseModels_[phasei].thermo().dpdt();
+    }
+
+    // Update the pressure time-derivative if required
+    if (updateDpdt)
+    {
+        dpdt_ = fvc::ddt(phaseModels_.begin()().thermo().p());
+    }
+}
+```
+
+##### correctThermo
+
+```cpp
+void Foam::phaseSystem::correctThermo()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctThermo();
+    }
+}
+```
+
+##### correctReactions
+
+```cpp
+void Foam::phaseSystem::correctReactions()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctReactions();
+    }
+}
+```
+
+##### correctSpecies
+
+```cpp
+void Foam::phaseSystem::correctSpecies()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctSpecies();
+    }
+}
+```
+
+##### correctTurbulelnce
+
+```cpp
+void Foam::phaseSystem::correctTurbulence()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctTurbulence();
+    }
+}
+```
+
+##### correctEnergyTransport
+
+```cpp
+void Foam::phaseSystem::correctEnergyTransport()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctEnergyTransport();
+    }
+}
+```
+
+##### read
+
+```cpp
+bool Foam::phaseSystem::read()
+{
+    if (regIOobject::read())
+    {
+        bool readOK = true;
+
+        forAll(phaseModels_, phasei)
+        {
+            readOK &= phaseModels_[phasei].read();
+        }
+
+        // models ...
+
+        return readOK;
+    }
+    else
+    {
+        return false;
+    }
+}
+```
+
+##### byDt1
+
+```cpp
+Foam::tmp<Foam::volScalarField> Foam::byDt(const volScalarField& vf)
+{
+    if (fv::localEulerDdt::enabled(vf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaT(vf.mesh())*vf;
+    }
+    else
+    {
+        return vf/vf.mesh().time().deltaT();
+    }
+}
+```
+
+$$
+byDt = \Delta t v_f
+$$
+
+or
+
+$$
+byDt = \frac{v_f}{\Delta t}
+$$
+
+##### byDt2
+
+```cpp
+Foam::tmp<Foam::surfaceScalarField> Foam::byDt(const surfaceScalarField& sf)
+{
+    if (fv::localEulerDdt::enabled(sf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaTf(sf.mesh())*sf;
+    }
+    else
+    {
+        return sf/sf.mesh().time().deltaT();
+    }
+}
+```
+
+$$
+byDt = \Delta t_f s_f
+$$
+
+or
+
+$$
+byDt = \frac{s_f}{\Delta t_f}
+$$
+
+#### phaseSystemSolve.C
+
+## multiPhaseEulerFoam
+
+### createFieldRefs.H
+
+```cpp
+surfaceScalarField& phi = fluid.phi();
+
+const IOMRFZoneList& MRF = fluid.MRF();
+fv::options& fvOptions = fluid.fvOptions();
+```
+
+define `phi`, `MRF` and `fvOptions`
+
+### createFields.H
+
+```cpp
+#include "createRDeltaT.H"
+#include "readGravitationalAcceleration.H"
+#include "readhRef.H"
+```
+
+include some required materials
+
+```cpp
+Info<< "Creating phaseSystem\n" << endl;
+
+autoPtr<phaseSystem> fluidPtr
+(
+    phaseSystem::New(mesh)
+);
+phaseSystem& fluid = fluidPtr(); // define fluid
+phaseSystem::phaseModelList& phases = fluid.phases(); // define phase
+```
+
+define a pointer for phase as `fluidPtr`, then define `fluid` as `fluidPtr` and define a phase list s`phases` of the phase sytem of `fluid`
+
+```cpp
+dimensionedScalar pMin
+(
+    "pMin",
+    dimPressure,
+    fluid
+);
+
+#include "gh.H"
+
+volScalarField& p = phases[0].thermoRef().p();
+
+Info<< "Reading field p_rgh\n" << endl;
+volScalarField p_rgh // using p_rgh
+(
+    IOobject
+    (
+        "p_rgh",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+label pRefCell = 0;
+scalar pRefValue = 0.0;
+if (fluid.incompressible())
+{
+    p = max(p_rgh + fluid.rho()*gh, pMin);
+
+    if (p_rgh.needReference())
+    {
+        setRefCell
+        (
+            p,
+            p_rgh,
+            pimple.dict(),
+            pRefCell,
+            pRefValue
+        );
+
+        p += dimensionedScalar
+        (
+            "p",
+            p.dimensions(),
+            pRefValue - getRefCellValue(p, pRefCell)
+        );
+        p_rgh = p - fluid.rho()*gh;
+    }
+}
+mesh.setFluxRequired(p_rgh.name());
+```
+
+define pMin, g, p, p_rgh, pRefCell, pRefValue etc.
+
+if the fluid is incompressible, then
+
+$$
+p = \min(p_{rgh} + \rho gh, pMin)
+$$
+
+set refference for p, and 
+
+$$
+p_{rgh} = p - \rho gh
+$$
+
+```cpp
+PtrList<volScalarField> rAUs;
+PtrList<surfaceScalarField> rAUfs;
+```
+
+Define lists for `rAUs` and `rAUfs`
+
+### CourantNo.H
+
+```cpp
+scalar CoNum = 0.0;
+scalar meanCoNum = 0.0;
+```
+
+initialize `CoNum` and `meanCoNum`
+
+```cpp
+if (mesh.nInternalFaces())
+{
+    scalarField sumPhi
+    (
+        fvc::surfaceSum(mag(phi))().primitiveField()
+    );
+
+    forAll(phases, phasei)
+    {
+        sumPhi = max
+        (
+            sumPhi,
+            fvc::surfaceSum(mag(phases[phasei].phi()))().primitiveField()
+        );
+    }
+
+    CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
+
+    meanCoNum =
+        0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
+}
+```
+
+$$
+CoNum = 0.5 \left(\frac{sunPhi}{V}\right)_{\max} \Delta t
+$$
+
+$$
+meanCoNum = 0.5 \frac{\sum sumPhi}{\sum V} \Delta t
+$$
+
+```cpp
+Info<< "Courant Number mean: " << meanCoNum
+    << " max: " << CoNum << endl;
+```
+
+output mean and max Courant number
+
+### setDeltaT.H
+
+```cpp
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

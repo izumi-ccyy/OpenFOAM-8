@@ -7,6 +7,8 @@
         "MPPICFoam.C": "cpp",
         "DPMFoam.C": "cpp",
         "particleFoam.C": "cpp",
-        "isothermalDiameter.C": "cpp"
+        "isothermalDiameter.C": "cpp",
+        "phaseSystemSolve.C": "cpp",
+        "phaseSystemTemplates.C": "cpp"
     }
 }
