@@ -3,6 +3,10 @@
     "files.associations": {
         "multiphaseEulerFoam.C": "cpp",
         "phaseSystemNew.C": "cpp",
-        "phaseSystem.C": "cpp"
+        "phaseSystem.C": "cpp",
+        "MPPICFoam.C": "cpp",
+        "DPMFoam.C": "cpp",
+        "particleFoam.C": "cpp",
+        "isothermalDiameter.C": "cpp"
     }
 }
