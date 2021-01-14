@@ -46,6 +46,12 @@
     - [createFields.H](#createfieldsh)
     - [CourantNo.H](#courantnoh)
     - [setDeltaT.H](#setdeltath)
+    - [YEqns.H](#yeqnsh)
+    - [EEqns.H](#eeqnsh)
+    - [PU](#pu)
+      - [UEqns.H](#ueqnsh)
+      - [pEqn.H](#peqnh)
+    - [PUf](#puf)
 
 ## phaseSystems
 
@@ -1324,13 +1330,476 @@ output mean and max Courant number
 ### setDeltaT.H
 
 ```cpp
+volScalarField& rDeltaT = trDeltaT.ref();
 
+const dictionary& pimpleDict = pimple.dict();
 ```
 
+initialize `rDeltaT` and `pimpleDict`
+
+```cpp
+scalar maxCo
+(
+    pimpleDict.lookupOrDefault<scalar>("maxCo", 0.2)
+);
+
+scalar maxDeltaT
+(
+    pimpleDict.lookupOrDefault<scalar>("maxDeltaT", great)
+);
+
+scalar rDeltaTSmoothingCoeff
+(
+    pimpleDict.lookupOrDefault<scalar>("rDeltaTSmoothingCoeff", 0.02)
+);
+```
+
+define lookup and initialize `maxCo`, `maxDeltaT` and `rDeltaTSmoothingCoeff`
+
+```cpp
+surfaceScalarField maxPhi("maxPhi", phi);
+
+forAll(phases, phasei)
+{
+    maxPhi = max(maxPhi, mag(phases[phasei].phi()));
+}
+```
+
+define `maxPhi`
+
+$$
+maxPhi = \max(phi, mag(phases[phasei].phi()))
+$$
+
+```cpp
+// Set the reciprocal time-step from the local Courant number
+rDeltaT.ref() = max
+(
+    1/dimensionedScalar(dimTime, maxDeltaT),
+    fvc::surfaceSum(maxPhi)()()
+    /((2*maxCo)*mesh.V())
+);
+
+// Update the boundary values of the reciprocal time-step
+rDeltaT.correctBoundaryConditions();
+
+fvc::smooth(rDeltaT, rDeltaTSmoothingCoeff);
+
+Info<< "Flow time scale min/max = "
+    << gMin(1/rDeltaT.primitiveField())
+    << ", " << gMax(1/rDeltaT.primitiveField()) << endl;
+```
+
+$$
+rDeltaT.ref() = \max(1, \frac{\sum maxPhi}{2 \cdot maxCo \cdot V})
+$$
+
+$$
+rDeltaT = \frac{1}{\Delta t}
+$$
+
+correct boundaries of `rDeltaT` and smooth `rDeltaT`
+
+### YEqns.H
+
+This should be the specie transport equations for different phases of the phase system.
+
+```cpp
+autoPtr<phaseSystem::specieTransferTable>
+    specieTransferPtr(fluid.specieTransfer());
+
+phaseSystem::specieTransferTable&
+    specieTransfer(specieTransferPtr());
+
+fluid.correctReactions();
+```
+
+define the list of species and rename it as `specieTransfer`, correct reactions
+
+```cpp
+forAll(fluid.multiComponentPhases(), multiComponentPhasei)
+{
+    phaseModel& phase = fluid.multiComponentPhases()[multiComponentPhasei];
+
+    UPtrList<volScalarField>& Y = phase.YActiveRef();
+    const volScalarField& alpha = phase;
+    const volScalarField& rho = phase.rho();
+
+    forAll(Y, i)
+    {
+        fvScalarMatrix YiEqn
+        (
+            phase.YiEqn(Y[i])
+            ==
+            *specieTransfer[Y[i].name()]
+            + fvOptions(alpha, rho, Y[i])
+        );
+
+        YiEqn.relax();
+        YiEqn.solve("Yi");
+    }
+}
+
+fluid.correctSpecies();
+```
+
+first, get one of the phase of phases with multiple species;
+
+second, obetain the list of species within the phase i
+
+third, get $\alpha$ ($\alpha$ is phase) and $\rho$
+
+fourth, define $Y$ equation for every specie, as
+
+`YiEqn` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MultiComponentPhaseModel\MultiComponentPhaseModel.C`
+
+$$
+\frac{\partial \alpha \rho Y_i}{\partial t} + \nabla \cdot (\alpha \rho \phi Y_i) - \nabla \cdot (\alpha \alpha_{thermo} \nabla Y_i) = \alpha R(Y_i) + \left(\frac{\partial residualAlpha\_\rho Y_i}{\partial t}\right)_{explicit} - \left(\frac{\partial residualAlpha\_\rho Y_i}{\partial t}\right)_{implicit}
+$$
+
+`alphaRhoPhi` is the Mass flux, in other words, $\rho \mathbf{U}$, and $\phi$ is the flux, $\alpha \phi$ is the Volumetric flux
+
+`divj(Yi)` can be found in `src\ThermophysicalTransportModels\laminar\Fourier\Fourier.C`, it's about Fourier's gradient heat flux model for laminar flow.
+
+
+```cpp
+template<class BasicThermophysicalTransportModel>
+tmp<fvScalarMatrix>
+Fourier<BasicThermophysicalTransportModel>::divj(volScalarField& Yi) const
+{
+    return -fvm::laplacian(this->alpha()*this->thermo().alpha(), Yi);
+}
+```
+
+$\alpha$ is the phase fraction, and the $\alpha$ in thermo models is the Laminar thermal diffusivity [kg/m/s], for clarity, it represented by $\alpha_{thermo}$
+
+So,
+
+$$
+divj(Y_i) = - \nabla \cdot (\alpha \alpha_{thermo} \nabla Y_i)
+$$
+
+`R(Yi)` represents the fuel consumption rate matrix, so it's about reaction.
+
+`residualAlpha_` is the residual phase-fraction for given phase, which is used to stabilize the phase momentum as the phase-fraction -> 0
+
+`fvm::` represents implicit while `fvc::` represents explicit.
+
+The last two terms are added to improve numerical stability of phase momentum as the phase-fraction -> 0. 
+
+fifth, relax and solve $Y$ equations
+
+finally, correct species
+
+### EEqns.H
+
+```cpp
+for (int Ecorr=0; Ecorr<nEnergyCorrectors; Ecorr++)
+{
+    fluid.correctEnergyTransport();
+
+    autoPtr<phaseSystem::heatTransferTable>
+        heatTransferPtr(fluid.heatTransfer());
+
+    phaseSystem::heatTransferTable& heatTransfer = heatTransferPtr();
+
+    forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+    {
+        phaseModel& phase = fluid.anisothermalPhases()[anisothermalPhasei];
+
+        const volScalarField& alpha = phase;
+        tmp<volScalarField> tRho = phase.rho();
+        const volScalarField& rho = tRho();
+        tmp<volVectorField> tU = phase.U();
+        const volVectorField& U = tU();
+
+        fvScalarMatrix EEqn
+        (
+            phase.heEqn()
+         ==
+           *heatTransfer[phase.name()]
+          + alpha*rho*(U&g)
+          + fvOptions(alpha, rho, phase.thermoRef().he())
+        );
+
+        EEqn.relax();
+        fvOptions.constrain(EEqn);
+        EEqn.solve();
+        fvOptions.correct(phase.thermoRef().he());
+    }
+
+    fluid.correctThermo();
+    fluid.correctContinuityError();
+}
+```
+
+first, it's a loop to corrent energy enquations.
+
+In this loop:
+
+* correct energy transport equations
+* define `heatTransfer` as the list of heat transfer matrices
+* for every anisothermal phases:
+  * define `phase` as current anisothermal phase
+  * get $\alpha$, $\rho$ and $\mathbf{U}$
+  * define energy equation `EEqn` as:
+  * relax, constrain and solve `EEqn`
+  * correct `he`
+* correct `thermo` and `continuityError`
+
+Output the minimum and maximum temperature for every phases
+
+
+$$
+phase.heEqn() = *heatTransfer[phase.name()] + \alpha \rho \mathbf{U} \cdot \mathbf{g} + fvOptions
+$$
+
+`phase.heEqn()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\AnisothermalPhaseModel\AnisothermalPhaseModel.C`
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvScalarMatrix>
+Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
+{
+    const volScalarField& alpha = *this;
+
+    const volVectorField U(this->U());
+    const surfaceScalarField alphaPhi(this->alphaPhi());
+    const surfaceScalarField alphaRhoPhi(this->alphaRhoPhi());
+
+    const volScalarField contErr(this->continuityError());
+    const volScalarField K(this->K());
+
+    volScalarField& he = this->thermo_->he();
+
+    tmp<fvScalarMatrix> tEEqn
+    (
+        fvm::ddt(alpha, this->rho(), he)
+      + fvm::div(alphaRhoPhi, he)
+      - fvm::Sp(contErr, he)
+
+      + fvc::ddt(alpha, this->rho(), K) + fvc::div(alphaRhoPhi, K)
+      - contErr*K
+      + this->divq(he)
+     ==
+        alpha*this->Qdot()
+    );
+
+    // Add the appropriate pressure-work term
+    if (he.name() == this->thermo_->phasePropertyName("e"))
+    {
+        tEEqn.ref() += filterPressureWork
+        (
+            fvc::div(fvc::absolute(alphaPhi, alpha, U), this->thermo().p())
+          + (fvc::ddt(alpha) - contErr/this->rho())*this->thermo().p()
+        );
+    }
+    else if (this->thermo_->dpdt())
+    {
+        tEEqn.ref() -= filterPressureWork(alpha*this->fluid().dpdt());
+    }
+
+    return tEEqn;
+}
+```
+
+* obtain $\alpha$, $\mathbf{U}$, volumetric flux $\alpha \phi$, mass flux $\alpha \rho \phi$, the phase kinetic energy $K$, the continuity error $contErr$, and enthalpy or internal energy $he$
+* define `tEEqn` as
+
+$$
+\frac{\partial \alpha \rho he}{\partial t} + \nabla \cdot (\alpha \rho \phi he) - Sp(contErr, he) + \frac{\partial \alpha \rho K}{\partial t} + \nabla \cdot (\alpha \rho \phi K) - contErr \cdot K - \nabla \cdot (\alpha \alpha_{thermo} \nabla he) = \dot{Q}
+$$
+
+`divq` is generally defined as:
+
+$$
+divq = \nabla \cdot (\alpha \alpha_{thermo} \nabla he) 
+$$
+
+`Qdot()` or $\dot{Q}$ is the heat release rate
+
+* according to energy equation or ethalpy equation, adding required terms
+* for energy equation:
+
+$$
+tEEqn.ref()  + \nabla \cdot ((\alpha \phi + \alpha \phi) p) + (\frac{\partial \alpha}{\partial t} - \frac{contErr}{\rho})p 
+$$
+
+`filterPressureWork` is to optionally filter the pressure work term as the phase-fraction -> 0
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::AnisothermalPhaseModel<BasePhaseModel>::filterPressureWork
+(
+    const tmp<volScalarField>& pressureWork
+) const
+{
+    const volScalarField& alpha = *this;
+
+    scalar pressureWorkAlphaLimit =
+        this->thermo_->lookupOrDefault("pressureWorkAlphaLimit", 0.0);
+
+    if (pressureWorkAlphaLimit > 0)
+    {
+        return
+        (
+            max(alpha - pressureWorkAlphaLimit, scalar(0))
+           /max(alpha - pressureWorkAlphaLimit, pressureWorkAlphaLimit)
+        )*pressureWork;
+    }
+    else
+    {
+        return pressureWork;
+    }
+}
+```
+
+* obtain $\alpha$
+* define and look up for `pressureWorkAlphaLimit`, whose default value is 0
+* if `pressureWorkAlphaLimit` > 0 return
+
+$$
+\frac{\max(\alpha-pressureWorkAlphaLimit, 0)}{\max(\alpha - pressureWorkAlphaLimit, pressureWorkAlphaLimit)} \cdot pressureWork
+$$
+
+When $\alpha \rArr 0$, it returns 0.
+
+* else, return `pressureWork`
+
+`absolute()` is to return the given relative flux in absolute form as in `src\finiteVolume\finiteVolume\fvc\fvcMeshPhi.C`
+
+```cpp
+Foam::tmp<Foam::surfaceScalarField> Foam::fvc::absolute
+(
+    const tmp<surfaceScalarField>& tphi,
+    const volScalarField& rho,
+    const volVectorField& U
+)
+{
+    if (tphi().mesh().moving())
+    {
+        return tphi + fvc::interpolate(rho)*fvc::meshPhi(rho, U);
+    }
+    else
+    {
+        return tmp<surfaceScalarField>(tphi, true);
+    }
+}
+```
+ if moving, then return
+
+ $$
+tphi + \rho phi
+ $$
+
+ so
+
+ $$
+fvc::div(fvc::absolute(alphaPhi, alpha, U), this->thermo().p()) = \nabla \cdot ((\alpha \phi + \alpha \phi) p)
+ $$
+
+ * else for ethalpy equation
+
+$$
+tEEqn.ref() - \alpha \frac{\partial p}{\partial t}
+$$
+ 
+So, for energy equation:
+
+$$
+\frac{\partial \rho e}{\partial t}+\nabla \cdot (\rho \mathbf{U} e) + \frac{\partial \rho K}{\partial t}+\nabla \cdot (\rho \mathbf{U} K)= -\nabla\cdot(p\mathbf{U})+\rho r -\nabla\cdot\mathbf{q} + \rho \mathbf{g} \cdot \mathbf{U}+\nabla \cdot(\tau \cdot \mathbf{U})
+$$
+
+$$
+\frac{\partial \rho e}{\partial t}+\nabla \cdot (\rho \mathbf{U} e) + \frac{\partial \rho K}{\partial t}+\nabla \cdot (\rho \mathbf{U} K)- \nabla \cdot (\alpha_\mathrm{eff}\nabla e)= -\nabla\cdot(p\mathbf{U}) 
+$$
+
+$$
+\frac{\partial \alpha \rho he}{\partial t} + \nabla \cdot (\alpha \rho \phi he) - Sp(contErr, he) + \frac{\partial \alpha \rho K}{\partial t} + \nabla \cdot (\alpha \rho \phi K) - contErr \cdot K - \nabla \cdot (\alpha \alpha_{thermo} \nabla he) + \nabla \cdot ((\alpha \phi + \alpha \phi) p) + (\frac{\partial \alpha}{\partial t} - \frac{contErr}{\rho})p = \dot{Q} 
+$$
+
+for ethalpy equation:
+
+$$
+\frac{\partial \rho h}{\partial t}+\nabla \cdot (\rho \mathbf{U} h) + \frac{\partial \rho K}{\partial t}+\nabla \cdot (\rho \mathbf{U} K) =\frac{\partial p}{\partial t}+ \rho r -\nabla\cdot\mathbf{q} + \rho \mathbf{g} \cdot \mathbf{U}+\nabla \cdot(\tau \cdot \mathbf{U})
+$$
+
+$$
+\frac{\partial \rho h}{\partial t}+\nabla \cdot (\rho \mathbf{U} h) + \frac{\partial \rho K}{\partial t}+\nabla \cdot (\rho \mathbf{U} K) - \nabla \cdot (\alpha_\mathrm{eff}\nabla h) =\frac{\partial p}{\partial t}
+$$
+
+$$
+\frac{\partial \alpha \rho he}{\partial t} + \nabla \cdot (\alpha \rho \phi he) - Sp(contErr, he) + \frac{\partial \alpha \rho K}{\partial t} + \nabla \cdot (\alpha \rho \phi K) - contErr \cdot K - \nabla \cdot (\alpha \alpha_{thermo} \nabla he) - \alpha \frac{\partial p}{\partial t} = \dot{Q}
+$$
+
+also the same
+
+finally, the `EEqn` is:
+
+$$
+\frac{\partial \alpha \rho he}{\partial t} + \nabla \cdot (\alpha \rho \phi he) - Sp(contErr, he) + \frac{\partial \alpha \rho K}{\partial t} + \nabla \cdot (\alpha \rho \phi K) - contErr \cdot K - \nabla \cdot (\alpha \alpha_{thermo} \nabla he) + \nabla \cdot ((\alpha \phi + \alpha \phi) p) + (\frac{\partial \alpha}{\partial t} - \frac{contErr}{\rho})p = *heatTransfer[phase.name()] + \alpha \rho \mathbf{U} \cdot \mathbf{g} + fvOptions
+$$
+
+$$
+\frac{\partial \alpha \rho he}{\partial t} + \nabla \cdot (\alpha \rho \phi he) - Sp(contErr, he) + \frac{\partial \alpha \rho K}{\partial t} + \nabla \cdot (\alpha \rho \phi K) - contErr \cdot K - \nabla \cdot (\alpha \alpha_{thermo} \nabla he) - \alpha \frac{\partial p}{\partial t} = *heatTransfer[phase.name()] + \alpha \rho \mathbf{U} \cdot \mathbf{g} + fvOptions
+$$
+
+### PU
+
+#### UEqns.H
+
+```cpp
+Info<< "Constructing momentum equations" << endl;
+
+PtrList<fvVectorMatrix> UEqns(phases.size());
+
+{
+    autoPtr<phaseSystem::momentumTransferTable>
+        momentumTransferPtr(fluid.momentumTransfer());
+
+    phaseSystem::momentumTransferTable&
+        momentumTransfer(momentumTransferPtr());
+
+    forAll(fluid.movingPhases(), movingPhasei)
+    {
+        phaseModel& phase = fluid.movingPhases()[movingPhasei];
+
+        const volScalarField& alpha = phase;
+        const volScalarField& rho = phase.rho();
+        volVectorField& U = phase.URef();
+
+        UEqns.set
+        (
+            phase.index(),
+            new fvVectorMatrix
+            (
+                phase.UEqn()
+             ==
+               *momentumTransfer[phase.name()]
+              + fvOptions(alpha, rho, U)
+            )
+        );
+
+        UEqns[phase.index()].relax();
+        fvOptions.constrain(UEqns[phase.index()]);
+        fvOptions.correct(U);
+    }
+}
+```
+
+* output information about constructing momentum equation
+* define a list for velocity equations with the size of phase number 
+* define `momentumTransfer` as a list for terms in momentrum equations
+* then start a loop for every moving phase, in which velocity equation for every moving phase is defined 
+  * define $\alpha$, $\rho$, $\mathbf{U}$
+  * define `UEqn` in the list `UEqns` as
 
 
 
+#### pEqn.H
 
+### PUf
 
 
 
