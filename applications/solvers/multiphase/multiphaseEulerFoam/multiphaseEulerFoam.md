@@ -2716,9 +2716,9 @@ if (!fluid.implicitPhasePressure())
 
 `fluid.implicitPhasePressure()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.H`, is to returns true if the phase pressure is treated implicitly in the phase fraction equation for any phase
 
-
-
 ### PUf
+
+Not available now.
 
 
 
