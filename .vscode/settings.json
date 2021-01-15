@@ -33,6 +33,22 @@
         "fvMeshGeometry.C": "cpp",
         "InterfaceCompositionPhaseChangePhaseSystem.C": "cpp",
         "multiphaseSystems.C": "cpp",
-        "MomentumTransferPhaseSystem.C": "cpp"
+        "MomentumTransferPhaseSystem.C": "cpp",
+        "phasePressureModel.C": "cpp",
+        "compressibleInterPhaseTransportModel.C": "cpp",
+        "PhaseIncompressibleMomentumTransportModel.C": "cpp",
+        "kineticTheoryModel.C": "cpp",
+        "linearViscousStress.C": "cpp",
+        "dimensionedTensor.C": "cpp",
+        "MRFZoneList.C": "cpp",
+        "nonlinearEddyViscosity.C": "cpp",
+        "localEulerDdt.C": "cpp",
+        "fvMatrix.C": "cpp",
+        "fvcSnGrad.C": "cpp",
+        "fvcFluxTemplates.C": "cpp",
+        "fvcFlux.C": "cpp",
+        "surfaceInterpolationSchemes.C": "cpp",
+        "surfaceInterpolationScheme.C": "cpp",
+        "ThermoPhaseModel.C": "cpp"
     }
 }

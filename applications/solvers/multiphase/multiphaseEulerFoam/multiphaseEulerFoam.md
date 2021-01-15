@@ -51,6 +51,20 @@
     - [PU](#pu)
       - [UEqns.H](#ueqnsh)
       - [pEqn.H](#peqnh)
+        - [Face volume fractions](#face-volume-fractions)
+        - [Diagnocal coefficients](#diagnocal-coefficients)
+        - [Phase diagonal coefficients](#phase-diagonal-coefficients)
+        - [Explicit force fluxes](#explicit-force-fluxes)
+        - [Pressure corrector loop](#pressure-corrector-loop)
+          - [Correct fixed-flux BCs to be consistent with the velocity BCs](#correct-fixed-flux-bcs-to-be-consistent-with-the-velocity-bcs)
+          - [Combined buoyancy and force fluxes](#combined-buoyancy-and-force-fluxes)
+          - [Predicted velocities and fluxes for each phase](#predicted-velocities-and-fluxes-for-each-phase)
+          - [Add explicit drag forces and fluxes](#add-explicit-drag-forces-and-fluxes)
+          - [Total predicted flux](#total-predicted-flux)
+          - [Construct pressure "diffusivity"](#construct-pressure-diffusivity)
+          - [Update the fixedFluxPressure BCs to ensure flux consistency](#update-the-fixedfluxpressure-bcs-to-ensure-flux-consistency)
+          - [Compressible pressure equations](#compressible-pressure-equations)
+          - [Cache p prior to solve for density update](#cache-p-prior-to-solve-for-density-update)
     - [PUf](#puf)
 
 ## phaseSystems
@@ -1130,7 +1144,7 @@ Foam::tmp<Foam::volScalarField> Foam::byDt(const volScalarField& vf)
 ```
 
 $$
-byDt = \Delta t v_f
+byDt = \frac{v_f}{\Delta t}
 $$
 
 or
@@ -1156,7 +1170,7 @@ Foam::tmp<Foam::surfaceScalarField> Foam::byDt(const surfaceScalarField& sf)
 ```
 
 $$
-byDt = \Delta t_f s_f
+byDt = \frac{s_f}{\Delta t_f}
 $$
 
 or
@@ -1794,10 +1808,676 @@ PtrList<fvVectorMatrix> UEqns(phases.size());
 * then start a loop for every moving phase, in which velocity equation for every moving phase is defined 
   * define $\alpha$, $\rho$, $\mathbf{U}$
   * define `UEqn` in the list `UEqns` as
+  * relax `UEqn`
+  * constrain and correct fvOpentions
 
+`phase.UEqn()` is defined in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MovingPhaseModel\MovingPhaseModel.C`
 
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::UEqn()
+{
+    const volScalarField& alpha = *this;
+    const volScalarField& rho = this->thermo().rho();
+
+    return
+    (
+        fvm::ddt(alpha, rho, U_)
+      + fvm::div(alphaRhoPhi_, U_)
+      + fvm::SuSp(-this->continuityError(), U_)
+      + this->fluid().MRF().DDt(alpha*rho, U_)
+      + turbulence_->divDevTau(U_)
+    );
+}
+```
+
+`turbulence_->divDevTau(U_)` can be found in `D:\Documents\Git\OpenFOAM-8\src\MomentumTransportModels\momentumTransportModels\linearViscousStress\linearViscousStress.C`
+
+```cpp
+template<class BasicMomentumTransportModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::linearViscousStress<BasicMomentumTransportModel>::divDevTau
+(
+    volVectorField& U
+) const
+{
+    return
+    (
+      - fvc::div((this->alpha_*this->rho_*this->nuEff())*dev2(T(fvc::grad(U))))
+      - fvm::laplacian(this->alpha_*this->rho_*this->nuEff(), U)
+    );
+}
+```
+
+`dev2` can be found in `src\OpenFOAM\primitives\Tensor\TensorI.H`
+
+```cpp
+//- Return the deviatoric part of a tensor
+template<class Cmpt>
+inline Tensor<Cmpt> dev2(const Tensor<Cmpt>& t)
+{
+    return t - SphericalTensor<Cmpt>::twoThirdsI*tr(t);
+}
+```
+
+$$
+dev2(\mathbf{T}) = \mathbf{T} - \frac{2}{3} tr(\mathbf{T}) \mathbf{I}
+$$
+
+`T()` can be found in `D:\Documents\Git\OpenFOAM-8\src\OpenFOAM\primitives\Tensor\Tensor.H` or in `src\OpenFOAM\primitives\SphericalTensor\SphericalTensor.H`, is to return the transpose
+
+$$
+T(\mathbf{T}) = \mathbf{T}^T
+$$
+
+So
+
+$$
+T(\nabla \mathbf{U}) = (\nabla \mathbf{U})^T
+$$
+
+$$
+dev2((\nabla \mathbf{U})^T) = (\nabla \mathbf{U})^T - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}
+$$
+
+So `divDevTau` is
+
+$$
+divDevTau = -\nabla \cdot (\alpha \rho \nu_{Eff} ((\nabla \mathbf{U})^T - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I})) - \nabla \cdot (\alpha \rho \nu_{Eff} \nabla \mathbf{U}) \\= -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right]
+$$
+
+It should be noted that 
+
+$$
+\nabla \cdot \tau = \nabla \cdot (-\frac{2}{3} \mu (\nabla \cdot \mathbf{U})\mathbf{I} + 2 \mu (\frac{1}{2}(\nabla \mathbf{U} + (\nabla \mathbf{U})^T)))
+$$
+
+which is the same with `divDevTau`
+
+The `UEqn` is defined as
+
+$$
+\frac{\partial \alpha \rho \mathbf{U}}{\partial t} + \nabla \cdot (\alpha \rho \phi \mathbf{U}) + SuSp(contErr, \mathbf{U}) + MRF(\alpha \rho \mathbf{U}) -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right]
+$$
+
+So
+
+$$
+\frac{\partial \alpha \rho \mathbf{U}}{\partial t} + \nabla \cdot (\alpha \rho \phi \mathbf{U}) + SuSp(contErr, \mathbf{U}) + MRF(\alpha \rho \mathbf{U}) -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right] = momentumTransfer + fvOptions(\alpha, \rho, \mathbf{U})
+$$
 
 #### pEqn.H
+
+##### Face volume fractions
+
+```cpp
+// Face volume fractions
+PtrList<surfaceScalarField> alphafs(phases.size());
+forAll(phases, phasei)
+{
+    phaseModel& phase = phases[phasei];
+    const volScalarField& alpha = phase;
+
+    alphafs.set(phasei, fvc::interpolate(alpha).ptr());
+    alphafs[phasei].rename("pEqn" + alphafs[phasei].name());
+}
+```
+
+define pointer list of $\alpha_f$, $\alpha$ at surface, for all phases as `alphafs`
+
+##### Diagnocal coefficients
+
+```cpp
+// Diagonal coefficients
+rAUs.clear();
+rAUs.setSize(phases.size());
+
+forAll(fluid.movingPhases(), movingPhasei)
+{
+    phaseModel& phase = fluid.movingPhases()[movingPhasei];
+    const volScalarField& alpha = phase;
+
+    rAUs.set
+    (
+        phase.index(),
+        new volScalarField
+        (
+            IOobject::groupName("rAU", phase.name()),
+            1.0
+           /(
+               UEqns[phase.index()].A()
+             + byDt(max(phase.residualAlpha() - alpha, scalar(0))*phase.rho())
+            )
+        )
+    );
+}
+fluid.fillFields("rAU", dimTime/dimDensity, rAUs);
+```
+
+* clear `rAUs`, it's a pointer list of `volScalarField` variables defined in `createFields.H`
+* set the size of `rAUs` as the number of phases
+* for every moving phases:
+  * define and get $\alpha$
+  * then, set `rAUs`
+  * fill up gaps in a phase-indexed table of fields with zeros
+
+`byDt` is defined in `D:\Documents\Git\OpenFOAM-8\applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.C` for `volScalarField` and `surfaceScalarField`
+
+```cpp
+Foam::tmp<Foam::volScalarField> Foam::byDt(const volScalarField& vf)
+{
+    if (fv::localEulerDdt::enabled(vf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaT(vf.mesh())*vf;
+    }
+    else
+    {
+        return vf/vf.mesh().time().deltaT();
+    }
+}
+
+
+Foam::tmp<Foam::surfaceScalarField> Foam::byDt(const surfaceScalarField& sf)
+{
+    if (fv::localEulerDdt::enabled(sf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaTf(sf.mesh())*sf;
+    }
+    else
+    {
+        return sf/sf.mesh().time().deltaT();
+    }
+}
+```
+
+`UEqns[phase.index()].A()` is to return the central coefficient, namely $A_P$
+
+$$
+byDt = \frac{v_f}{\Delta t}
+$$
+
+$$
+rAU = \frac{1}{A_P + \frac{\max(residualAlpha() - \alpha, 0)\rho}{\Delta t}}
+$$
+
+in general $\alpha$ is not too small, then $rAU = \frac{1}{A_P}$
+
+##### Phase diagonal coefficients
+
+```cpp
+// Phase diagonal coefficients
+PtrList<surfaceScalarField> alpharAUfs(phases.size());
+forAll(phases, phasei)
+{
+    phaseModel& phase = phases[phasei];
+    const volScalarField& alpha = phase;
+
+    alpharAUfs.set
+    (
+        phasei,
+        (
+            fvc::interpolate(max(alpha, phase.residualAlpha())*rAUs[phasei])
+        ).ptr()
+    );
+}
+```
+
+* define a pointer list of `surfaceScalarField` variables `alpharAUfs` with size of phase number
+* for every phases:
+  * define and get $\alpha$
+  * set `alpharAUfs`
+
+$$
+alpharAUfs[i] = \left(\max(\alpha, residualAlpha()) \cdot rAUs[i] \right)_f
+$$
+
+In general, $alpharAUf = \left(\frac{\alpha}{A_P}\right)_f$
+
+##### Explicit force fluxes
+
+```cpp
+// Explicit force fluxes
+PtrList<surfaceScalarField> phiFs(fluid.phiFs(rAUs));
+```
+
+`phiFs()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\MomentumTransferPhaseSystem\MomentumTransferPhaseSystem.C`, is to return the explicit force fluxes for the cell-based algorithm, that do not depend on phase mass/volume fluxes, and can therefore be evaluated outside the corrector loop. This includes things like lift, turbulent dispersion, and wall lubrication.
+
+##### Pressure corrector loop
+
+```cpp
+// --- Pressure corrector loop
+while (pimple.correct())
+{
+    volScalarField rho("rho", fluid.rho());
+
+    // Correct p_rgh for consistency with p and the updated densities
+    p_rgh = p - rho*gh;
+
+    ...
+
+}
+```
+
+this is the pressure corrector loop, obtain $\rho$ and correct $p_{rgh}$ with updated $\rho$
+
+###### Correct fixed-flux BCs to be consistent with the velocity BCs
+
+```cpp
+    // Correct fixed-flux BCs to be consistent with the velocity BCs
+    forAll(fluid.movingPhases(), movingPhasei)
+    {
+        phaseModel& phase = fluid.movingPhases()[movingPhasei];
+        MRF.correctBoundaryFlux(phase.U(), phase.phiRef());
+    }
+```
+
+* for every moving phase:
+  * get phase
+  * correct boundary flux
+
+###### Combined buoyancy and force fluxes
+
+```cpp
+    // Combined buoyancy and force fluxes
+    PtrList<surfaceScalarField> phigFs(phases.size());
+    {
+        const surfaceScalarField ghSnGradRho
+        (
+            "ghSnGradRho",
+            ghf*fvc::snGrad(rho)*mesh.magSf()
+        );
+
+        forAll(phases, phasei)
+        {
+            phaseModel& phase = phases[phasei];
+
+            phigFs.set
+            (
+                phasei,
+                (
+                    alpharAUfs[phasei]
+                   *(
+                       ghSnGradRho
+                     - (fvc::interpolate(phase.rho() - rho))*(g & mesh.Sf())
+                     - fluid.surfaceTension(phase)*mesh.magSf()
+                    )
+                ).ptr()
+            );
+
+            if (phiFs.set(phasei))
+            {
+                phigFs[phasei] += phiFs[phasei];
+            }
+        }
+    }
+```
+
+* define pointer list of `surfaceScalarField` variables `phigFs` with size of phase number
+* define `ghSnGradRho` as:
+
+$$
+ghSnGradRho = (\mathbf{g}h)_f \cdot [\mathbf{n} \cdot (\nabla \rho)_f] \|\mathbf{S}_f\|
+$$
+
+* for every phase:
+  * get phase or $\alpha$
+  * set `phigFs`:
+
+$$
+phigFs[i] = phigF = \left(\frac{\alpha}{A_P}\right)_f \left[ (\mathbf{g}h)_f \cdot [\mathbf{n} \cdot (\nabla \rho)_f] \|\mathbf{S}_f\| - ((\rho_k - \rho)_f \mathbf{g} \cdot \mathbf{S}_f) - (F_{st}\|\mathbf{S}_f\|) \right]
+$$
+
+where $\rho_k$ is the density of phase $k$, $F_{st}$ is the surface tension
+
+  * if `phiFs` is set, then
+
+$$
+phigFs[i] = phigFs[i] + phiFs[i]
+$$
+
+###### Predicted velocities and fluxes for each phase
+
+```cpp
+    // Predicted velocities and fluxes for each phase
+    PtrList<volVectorField> HbyAs(phases.size());
+    PtrList<surfaceScalarField> phiHbyAs(phases.size());
+```
+
+Define pointer list of `volVectorField` $HbyAs$ and of `surfaceScalarField` $phiHbyAs$
+
+```cpp
+    {
+        // Correction force fluxes
+        PtrList<surfaceScalarField> ddtCorrByAs(fluid.ddtCorrByAs(rAUs));
+
+        forAll(fluid.movingPhases(), movingPhasei)
+        {
+            phaseModel& phase = fluid.movingPhases()[movingPhasei];
+            const volScalarField& alpha = phase;
+
+            HbyAs.set
+            (
+                phase.index(),
+                new volVectorField
+                (
+                    IOobject::groupName("HbyA", phase.name()),
+                    phase.U()
+                )
+            );
+
+            HbyAs[phase.index()] =
+                rAUs[phase.index()]
+               *(
+                    UEqns[phase.index()].H()
+                  + byDt
+                    (
+                        max(phase.residualAlpha() - alpha, scalar(0))
+                       *phase.rho()
+                    )
+                   *phase.U()().oldTime()
+                );
+
+            phiHbyAs.set
+            (
+                phase.index(),
+                new surfaceScalarField
+                (
+                    IOobject::groupName("phiHbyA", phase.name()),
+                    fvc::flux(HbyAs[phase.index()])
+                  - phigFs[phase.index()]
+                  - ddtCorrByAs[phase.index()]
+                )
+            );
+        }
+    }
+    fluid.fillFields("HbyA", dimVelocity, HbyAs);
+    fluid.fillFields("phiHbyA", dimForce/dimDensity/dimVelocity, phiHbyAs);
+```
+
+* correct force fluxes
+* for every moving phase:
+  * define and get $\alpha$
+  * set $HbyAs$:
+
+$$
+HbyA = \mathbf{U}
+$$
+
+  * further initialize $HbyAs$:
+
+$$
+HbyA = \frac{1}{rAU} \left( (-\sum A_N \mathbf{U}_N^r + S_P^n) + \frac{\max(residualAlpha - \alpha, 0) \rho}{\Delta t} \mathbf{U}^{n-1}\right)
+$$
+
+in general, $HbyA^n = \frac{1}{rAU} \left( -\sum A_N \mathbf{U}_N^r + S_P^n \right) = \frac{1}{A_P} \left( -\sum A_N \mathbf{U}_N^r + S_P^n \right)$
+
+  * set $phiHbyAs$:
+
+$$
+phiHbyA = \int \mathbf{S}_f \cdot HbyA - phigF - ddtCorrByA
+$$
+
+* fill empty lists so that null pointer will not be returned
+
+###### Add explicit drag forces and fluxes
+
+```cpp
+    // Add explicit drag forces and fluxes
+    PtrList<volVectorField> KdUByAs(fluid.KdUByAs(rAUs));
+    PtrList<surfaceScalarField> phiKdPhis(fluid.phiKdPhis(rAUs));
+
+    forAll(phases, phasei)
+    {
+        if (KdUByAs.set(phasei))
+        {
+            HbyAs[phasei] -= KdUByAs[phasei];
+        }
+
+        if (phiKdPhis.set(phasei))
+        {
+            phiHbyAs[phasei] -= phiKdPhis[phasei];
+        }
+    }
+```
+
+* define and get explicit drag forces and fluxes `KdUByAs` and `phiKdPhis` 
+* add them to `HbyAs` and `phiHbyAs`
+
+$$
+HbyA = HbyA - KdUByA
+$$
+
+$$
+phiHbyA = phiHbyA - phiKdUByA
+$$
+
+###### Total predicted flux
+
+```cpp
+    // Total predicted flux
+    surfaceScalarField phiHbyA
+    (
+        IOobject
+        (
+            "phiHbyA",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar(dimArea*dimVelocity, 0)
+    );
+
+    forAll(phases, phasei)
+    {
+        phiHbyA += alphafs[phasei]*phiHbyAs[phasei];
+    }
+
+    MRF.makeRelative(phiHbyA);
+```
+
+* define total phiHbyA, namely phiHbyA for all phases, obtained by average:
+
+$$
+phiHbyA = \sum_{k=1}^N \alpha^k phiHbyA^k
+$$
+
+where $^k$ means $k$th phase
+
+###### Construct pressure "diffusivity"
+
+```cpp
+    // Construct pressure "diffusivity"
+    surfaceScalarField rAUf
+    (
+        IOobject
+        (
+            "rAUf",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar(dimensionSet(-1, 3, 1, 0, 0), 0)
+    );
+
+    forAll(phases, phasei)
+    {
+        rAUf += alphafs[phasei]*alpharAUfs[phasei];
+    }
+
+    rAUf = mag(rAUf);
+```
+
+* define total $rAU$ at surface, $rAUf$
+
+$$
+rAUf = \sum_{k=1}^N \alpha_f^k (\frac{\alpha}{A_p})^k_f
+$$
+
+$$
+rAUf = \|\sum_{k=1}^N \alpha_f^k (\frac{\alpha}{A_p})^k_f\|
+$$
+
+###### Update the fixedFluxPressure BCs to ensure flux consistency
+
+```cpp
+    // Update the fixedFluxPressure BCs to ensure flux consistency
+    {
+        surfaceScalarField::Boundary phib(phi.boundaryField());
+        phib = 0;
+        forAll(phases, phasei)
+        {
+            phaseModel& phase = phases[phasei];
+            phib +=
+                alphafs[phasei].boundaryField()*phase.phi()().boundaryField();
+        }
+
+        setSnGrad<fixedFluxPressureFvPatchScalarField>
+        (
+            p_rgh.boundaryFieldRef(),
+            (
+                phiHbyA.boundaryField() - phib
+            )/(mesh.magSf().boundaryField()*rAUf.boundaryField())
+        );
+    }
+```
+
+* define $phib$
+* for every phase:
+  * $$phib = \sum_{k=1}^N \alpha_f^k \phi^k$$
+* set boundary of $p_{rgh}$
+  * $$p_{rgh} = \frac{phiHbyA - phib}{\|\mathbf{S}_f\| rAUf} = \frac{\sum_{k=1}^N \alpha^k phiHbyA^k - \sum_{k=1}^N \alpha_f^k \phi^k}{\|\mathbf{S}_f\| \|\sum_{k=1}^N \alpha_f^k (\frac{\alpha}{A_p})^k_f\|}  $$
+
+###### Compressible pressure equations
+
+```cpp
+    // Compressible pressure equations
+    PtrList<fvScalarMatrix> pEqnComps(phases.size());
+    PtrList<volScalarField> dmdts(fluid.dmdts());
+```
+
+* define pointer list of compressible pressure equations `pEqnComps` and `dmdts`
+  
+```cpp
+    forAll(phases, phasei)
+    {
+        phaseModel& phase = phases[phasei];
+        const volScalarField& alpha = phase;
+        volScalarField& rho = phase.thermoRef().rho();
+
+        pEqnComps.set(phasei, new fvScalarMatrix(p_rgh, dimVolume/dimTime));
+        fvScalarMatrix& pEqnComp = pEqnComps[phasei];
+
+        ...
+
+    }
+```
+
+* for every phase:
+  * define and get $\alpha$ and $\rho$
+  * initialize `pEqnComps` and define current `pEqnComp`
+    * $$pEqnComp = p_{rgh}$$
+
+Density variation
+
+```cpp
+        // Density variation
+        if (!phase.isochoric() || !phase.pure())
+        {
+            pEqnComp +=
+                (
+                    fvc::ddt(alpha, rho) + fvc::div(phase.alphaRhoPhi())
+                  - fvc::Sp(fvc::ddt(alpha) + fvc::div(phase.alphaPhi()), rho)
+                )/rho;
+        }
+```
+
+`isochoric()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\ThermoPhaseModel\ThermoPhaseModel.H`, is to return whether the phase is constant density
+
+`pure` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MultiComponentPhaseModel\MultiComponentPhaseModel.H`, is to return whether the phase is pure (i.e., not multi-component)
+
+  * if current phase is not constant density or not pure, then:
+    * $$pEqnComp = pEqnComp + \left[\frac{\partial \alpha \rho}{\partial t} + \nabla (\alpha \rho \phi) - Sp(\frac{\partial \alpha}{\partial t} + \nabla (\alpha \rho), \rho)\right] /\rho \\ = p_{rgh} + \left[\frac{\partial \alpha \rho}{\partial t} + \nabla (\alpha \rho \phi) - Sp(\frac{\partial \alpha}{\partial t} + \nabla (\alpha \rho), \rho)\right] /\rho $$
+
+Compressibility
+
+```cpp
+        // Compressibility
+        if (!phase.incompressible())
+        {
+            if (pimple.transonic())
+            {
+                const surfaceScalarField phid
+                (
+                    IOobject::groupName("phid", phase.name()),
+                    fvc::interpolate(phase.thermo().psi())*phase.phi()
+                );
+
+                pEqnComp +=
+                    correction
+                    (
+                        (alpha/rho)*
+                        (
+                            phase.thermo().psi()*fvm::ddt(p_rgh)
+                          + fvm::div(phid, p_rgh)
+                          - fvm::Sp(fvc::div(phid), p_rgh)
+                        )
+                    );
+
+                pEqnComps[phasei].relax();
+            }
+            else
+            {
+                pEqnComp +=
+                    (alpha*phase.thermo().psi()/rho)
+                   *correction(fvm::ddt(p_rgh));
+            }
+        }
+```
+
+  * if current phase in not incompressible, in other words, it's compressible, then
+    * if current phase is transonic, then
+      * define $phid$ as
+        * $$phid = \psi_f \phi$$
+      * $$pEqnComp = pEqnComp + correction(\frac{\alpha}{\rho} (\psi \frac{\partial p_{rgh}}{\partial t} + \nabla \cdot (phid p_{rgh}) - Sp(\nabla phid, p_{rgh}) ) ) \\ = p_{rgh} + \left[\frac{\partial \alpha \rho}{\partial t} + \nabla (\alpha \rho \phi) - Sp(\frac{\partial \alpha}{\partial t} + \nabla (\alpha \rho), \rho)\right] /\rho + correction(\frac{\alpha}{\rho} (\psi \frac{\partial p_{rgh}}{\partial t} + \nabla \cdot (\psi_f \phi p_{rgh}) - Sp(\nabla \psi_f \phi, p_{rgh}) ) ) $$ 
+    * if current phase in not transonic, then
+      * $$pEqnComp = pEqnComp + \frac{\alpha \psi}{\rho} correction(\frac{\partial p_{rgh}}{\partial t}) \\ = p_{rgh} + \left[\frac{\partial \alpha \rho}{\partial t} + \nabla (\alpha \rho \phi) - Sp(\frac{\partial \alpha}{\partial t} + \nabla (\alpha \rho), \rho)\right] /\rho + \frac{\alpha \psi}{\rho} correction(\frac{\partial p_{rgh}}{\partial t})$$
+
+Option sources and Mass transfer
+
+```cpp
+        // Option sources
+        if (fvOptions.appliesToField(rho.name()))
+        {
+            pEqnComp -= (fvOptions(alpha, rho) & rho)/rho;
+        }
+
+        // Mass transfer
+        if (dmdts.set(phasei))
+        {
+            pEqnComp -= dmdts[phasei]/rho;
+        }
+```
+
+  * if there is Option sources, then
+    * $$pEqnComp = pEqnComp - [fvOptions(\alpha, \rho) \cdot \rho] / \rho$$
+  * if ther is Mass transfer, then
+    * $$pEqnComp = pEqnComp - \frac{dmdt}{\rho}$$
+
+`dmdts` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.H`, is to return the mass transfer rates for each phase
+
+where $dmdt$ is the masss transfer for current phase
+
+###### Cache p prior to solve for density update
+
+```cpp
+    // Cache p prior to solve for density update
+    volScalarField p_rgh_0(p_rgh);
+```
+
+  * cache $p_{rgh}$ in $p_{rgh0}$
 
 ### PUf
 
