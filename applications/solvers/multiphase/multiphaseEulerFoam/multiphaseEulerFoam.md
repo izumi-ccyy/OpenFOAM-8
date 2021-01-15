@@ -65,6 +65,13 @@
           - [Update the fixedFluxPressure BCs to ensure flux consistency](#update-the-fixedfluxpressure-bcs-to-ensure-flux-consistency)
           - [Compressible pressure equations](#compressible-pressure-equations)
           - [Cache p prior to solve for density update](#cache-p-prior-to-solve-for-density-update)
+          - [Iterate over the pressure equation to correct for non-orthogonality](#iterate-over-the-pressure-equation-to-correct-for-non-orthogonality)
+          - [Update and limit the static pressure](#update-and-limit-the-static-pressure)
+          - [Account for static pressure reference](#account-for-static-pressure-reference)
+          - [Limit p_rgh](#limit-p_rgh)
+          - [Update densities from change in p_rgh](#update-densities-from-change-in-p_rgh)
+          - [Correct p_rgh for consistency with p and the updated densities](#correct-p_rgh-for-consistency-with-p-and-the-updated-densities)
+        - [clear rAUs](#clear-raus)
     - [PUf](#puf)
 
 ## phaseSystems
@@ -2478,6 +2485,238 @@ where $dmdt$ is the masss transfer for current phase
 ```
 
   * cache $p_{rgh}$ in $p_{rgh0}$
+
+###### Iterate over the pressure equation to correct for non-orthogonality
+    
+```cpp
+    // Iterate over the pressure equation to correct for non-orthogonality
+    while (pimple.correctNonOrthogonal())
+    {
+        ...
+    }
+```
+
+start the loop to solve pressure equation
+
+Construct the transport part of the pressure equation
+        
+```cpp
+        // Construct the transport part of the pressure equation
+        fvScalarMatrix pEqnIncomp
+        (
+            fvc::div(phiHbyA)
+          - fvm::laplacian(rAUf, p_rgh)
+        );
+```
+
+* define $pEqnIncomp$
+  * $$pEqnIncomp = \nabla phiHbyA - \nabla \cdot (rAUf \nabla p_{rgh})$$
+
+Solve
+
+```cpp
+        // Solve
+        {
+            fvScalarMatrix pEqn(pEqnIncomp);
+
+            forAll(phases, phasei)
+            {
+                pEqn += pEqnComps[phasei];
+            }
+
+            if (fluid.incompressible())
+            {
+                pEqn.setReference(pRefCell, getRefCellValue(p_rgh, pRefCell));
+            }
+
+            pEqn.solve();
+        }
+```
+
+* define `pEqn` equal to `pEqnIncomp`
+* for every phase:
+  * pEqn = pEqn + pEqnComp
+  * namely, $$pEqn = pEqn + \sum_{k=1}^N pEqnComp^k$$
+* if it's incompressible, then
+  * set reference for `pEqn`
+* solve `pEqn` 
+
+Correct fluxes and velocities on last non-orthogonal iteration
+
+```cpp
+        // Correct fluxes and velocities on last non-orthogonal iteration
+        if (pimple.finalNonOrthogonalIter())
+        {
+            phi = phiHbyA + pEqnIncomp.flux();
+
+            surfaceScalarField mSfGradp("mSfGradp", pEqnIncomp.flux()/rAUf);
+
+            forAll(fluid.movingPhases(), movingPhasei)
+            {
+                phaseModel& phase = fluid.movingPhases()[movingPhasei];
+
+                phase.phiRef() =
+                    phiHbyAs[phase.index()]
+                  + alpharAUfs[phase.index()]*mSfGradp;
+
+                // Set the phase dilatation rate
+                phase.divU(-pEqnComps[phase.index()] & p_rgh);
+            }
+
+            // Optionally relax pressure for velocity correction
+            p_rgh.relax();
+
+            mSfGradp = pEqnIncomp.flux()/rAUf;
+
+            forAll(fluid.movingPhases(), movingPhasei)
+            {
+                phaseModel& phase = fluid.movingPhases()[movingPhasei];
+
+                phase.URef() =
+                    HbyAs[phase.index()]
+                  + fvc::reconstruct
+                    (
+                        alpharAUfs[phase.index()]*mSfGradp
+                      - phigFs[phase.index()]
+                    );
+            }
+
+            if (partialElimination)
+            {
+                fluid.partialElimination(rAUs, KdUByAs, alphafs, phiKdPhis);
+            }
+            else
+            {
+                forAll(fluid.movingPhases(), movingPhasei)
+                {
+                    phaseModel& phase = fluid.movingPhases()[movingPhasei];
+                    MRF.makeRelative(phase.phiRef());
+                }
+            }
+
+            forAll(fluid.movingPhases(), movingPhasei)
+            {
+                phaseModel& phase = fluid.movingPhases()[movingPhasei];
+
+                phase.URef().correctBoundaryConditions();
+                fvOptions.correct(phase.URef());
+            }
+        }
+```
+
+* if there is final non orthogonal correction
+  * $$\phi = phiHbyA + pEqnIncomp.flux()$$
+  * define `nSfGradp`
+    * $$mSfGradp = \frac{pEqnIncomp.flux()}{rAUf}$$
+  * for every moving phase
+    * get `phase`, or $\alpha$
+    * set `phase.phiRef()`
+      * $$phaze.phiRef() = phiHbyA^k + alpharAUf^k mSfGradp$$
+    * set the phase dilatation rate
+      * $$phase.divU = -pEqnComp^k \cdot p_{rgh}$$
+  * relax $p_{rgh}$
+  * recalculate `mSfGradp`
+    * $$mSfGradp = \frac{pEqnIncomp.flux()}{rAUf}$$
+  * for every moving phase:
+    * get current moving phase `phase` or $\alpha$
+    * set `phase.URef()`
+      * $$phase.URef() = HbyA^k + reconstruct(alpharAUf^k mSfGradp - phigF^k)$$
+  * if the drag system should be sovled for the velocities and fluxes, then
+    * solve it
+  * else:
+    * for every moving phase:
+      * get `phase`
+      * get relative velocity in the MRF region
+  * for every moving phase
+    * get `phase`
+    * correct boundary condition for `phase.URef()`
+    * correct `fvOptions`of `phase.URef()`
+
+`reconstruct()` can be found in `src\finiteVolume\finiteVolume\fvc\fvcReconstruct.H`, is to reconstruct volField from a face flux field
+
+`MRF.makeRelative()` can be found in `src\finiteVolume\cfdTools\general\MRF\MRFZone.H`, is to make the given absolute velocity relative within the MRF region
+
+###### Update and limit the static pressure
+
+```cpp
+    // Update and limit the static pressure
+    p = max(p_rgh + rho*gh, pMin);
+```
+
+$$
+p = \max(p_{rgh} + \rho \mathbf{g}h, pMin)
+$$
+
+###### Account for static pressure reference
+
+```cpp
+    // Account for static pressure reference
+    if (p_rgh.needReference() && fluid.incompressible())
+    {
+        p += dimensionedScalar
+        (
+            "p",
+            p.dimensions(),
+            pRefValue - getRefCellValue(p, pRefCell)
+        );
+    }
+```
+
+* if $p_{rgh}$ needs reference and the fluid is incompressible, then
+  * $$p = p + pRefValue - getRefCellValue(p, pRefCell)$$
+
+###### Limit p_rgh
+
+```cpp
+    // Limit p_rgh
+    p_rgh = p - rho*gh;
+```
+
+$$
+p_{rgh} = p - \rho \mathbf{g} h
+$$
+
+###### Update densities from change in p_rgh
+
+```cpp
+    // Update densities from change in p_rgh
+    forAll(phases, phasei)
+    {
+        phaseModel& phase = phases[phasei];
+        phase.thermoRef().rho() += phase.thermo().psi()*(p_rgh - p_rgh_0);
+    }
+```
+
+* for every phase:
+  * get `phase`
+  * $$\rho = rho + \psi (p_{rgh} - p_{rgh0})$$
+
+###### Correct p_rgh for consistency with p and the updated densities
+
+```cpp
+    // Correct p_rgh for consistency with p and the updated densities
+    rho = fluid.rho();
+    p_rgh = p - rho*gh;
+    p_rgh.correctBoundaryConditions();
+```
+
+* correct $\rho$, $p_{rgh}$ and the boundary conditions
+
+##### clear rAUs
+
+```cpp
+if (!fluid.implicitPhasePressure())
+{
+    rAUs.clear();
+}
+```
+
+* if the phase pressure is not treated implicitly, then
+  * clear `rAUs`
+
+`fluid.implicitPhasePressure()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.H`, is to returns true if the phase pressure is treated implicitly in the phase fraction equation for any phase
+
+
 
 ### PUf
 
