@@ -51,6 +51,8 @@
         "surfaceInterpolationScheme.C": "cpp",
         "ThermoPhaseModel.C": "cpp",
         "fvcReconstruct.C": "cpp",
-        "MRFZone.C": "cpp"
+        "MRFZone.C": "cpp",
+        "displacementComponentLaplacianFvMotionSolver.C": "cpp",
+        "lduMatrix.C": "cpp"
     }
 }
