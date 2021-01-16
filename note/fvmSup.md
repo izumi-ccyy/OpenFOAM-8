@@ -211,7 +211,7 @@ Foam::fvm::Su
 * define a reference of `tfvm` as `fvm`
 * set the source of `fvm` as:
   * $$fvm.source() = fvm.source() - V \cdot su$$
-* return `tfvm`, whose source has been replaced with $$vf - V \cdot su$$
+* return `tfvm`, whose source has been replaced with $$fvm.source() - V \cdot su$$
 
 `tmp` is a class for managing temporary objects
 
@@ -305,7 +305,7 @@ Foam::fvm::Sp
 * define a reference of `tfvm` as `fvm`
 * set the diagonal elements of `fvm` as:
   * $$fvm.diag() = fvm.diag() + V \cdot sp$$
-* return `tfvm`, whose source has been replaced with $$vf + V \cdot sp$$
+* return `tfvm`, whose diagonal has been replaced with $$fvm.diag() + V \cdot sp$$
 
 Why the dimension is set to `dimVol*sp.dimensions()*vf.dimensions()`?
 
@@ -436,7 +436,7 @@ Foam::fvm::SuSp
 * set the source of `fvm` as:
   * $$fvm.source() = fvm.source() - V \cdot \min(susp, 0) \cdot vf$$
   * namely, if $susp$ is negative, then it is added to the source, else, it is add to the diagonal as above
-* return `tfvm`, whose source has been replaced with $$vf + V \cdot sp$$
+* return `tfvm`
 
 `vf.primitiveField()` can be found in `src\OpenFOAM\fields\GeometricFields\GeometricField\GeometricField.H`, is to return a const-reference to the  internal field
 
