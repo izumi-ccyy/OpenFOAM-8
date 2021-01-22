@@ -58,6 +58,13 @@
         "turbulentDispersionModel.C": "cpp",
         "liftModel.C": "cpp",
         "progmesh.C": "cpp",
-        "dimensionSet.C": "cpp"
+        "dimensionSet.C": "cpp",
+        "diffusiveMassTransferModel.C": "cpp",
+        "multiphaseThermophysicalTransportModels.C": "cpp",
+        "rhoReactionMultiphaseThermophysicalTransportModels.C": "cpp",
+        "multiphaseCompressibleMomentumTransportModels.C": "cpp",
+        "aspectRatioModelNew.C": "cpp",
+        "aspectRatioModel.C": "cpp",
+        "constantAspectRatio.C": "cpp"
     }
 }
