@@ -15,7 +15,7 @@
         - [setMixturePhi](#setmixturephi)
         - [nHatfv](#nhatfv)
         - [nHatf](#nhatf)
-        - [correctContactAngle](#correctcontactangle)
+        - [correctContactAngle (uncompleted)](#correctcontactangle-uncompleted)
         - [K](#k)
         - [Constructors 1: phaseSystem](#constructors-1-phasesystem)
         - [Destructor ~phaseSystem](#destructor-phasesystem)
@@ -300,6 +300,13 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::calcPhi
 }
 ```
 
+calculate and return the mixture flux
+
+* define `tmpPhi`
+  * $$tmpPhi = \phi = \sum_{k = 1}^N (\alpha^k)_f \phi^k_f$$
+
+where $N$ is the phase number
+
 **what is `phaseModels`?**
 
 `tmpPhi` is the `phi` of `phase[0]`
@@ -359,6 +366,8 @@ void Foam::phaseSystem::generatePairs
 
 **what is `phasePairs`?**
 
+for the interfering phases
+
 ##### sumAlphaMoving
 
 ```cpp
@@ -390,6 +399,11 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::sumAlphaMoving() const
 
 Return the sum of the phase fractions of the moving phases
 
+* define `sumAlphaMoving`
+* $$sumAlphaMoving = \sum_{k = 1}^N \alpha^k$$
+
+where $N$ is the number of moving phases
+
 ##### setMixtureU
 
 ```cpp
@@ -416,7 +430,11 @@ void Foam::phaseSystem::setMixtureU(const volVectorField& Um0)
 Re-normalise the velocity of the phases around the specified mixture mean
 
 $$
-dUm = dUm - \sum \mathbf{U}_{moving phase}
+dUm = U_{m0} - \sum_{k=1}^N \alpha^k\mathbf{U}^k
+$$
+
+$$
+\mathbf{U}^k = \mathbf{U}^k + dUm
 $$
 
 ##### setMixturePhi
@@ -447,6 +465,11 @@ void Foam::phaseSystem::setMixturePhi
 ```
 
 Re-normalise the flux of the phases around the specified mixture mean
+
+* set `dphim = phim0`
+* $$dphim = phim0 - \sum_{k=1}^N \alpha^k_f \phi^k$$
+  * where $N$ is the moving phase number
+* $$\phi^k = \phi_k + dphim$$
 
 ##### nHatfv
 
@@ -509,7 +532,7 @@ $$
 nHatf = nHatfv \cdot \mathbf{S}_f = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f
 $$
 
-##### correctContactAngle
+##### correctContactAngle (uncompleted)
 
 ```cpp
 void Foam::phaseSystem::correctContactAngle
@@ -618,6 +641,14 @@ void Foam::phaseSystem::correctContactAngle
 }
 ```
 
+* get boundary of `phase1`, `gbf`
+* get `boundary` as mesh boundary
+* for every patch in boundaries:
+  * if current patchi is alphaContackAngle...
+    * get `nHatPatch` as `nHat` on patchi
+    * get `AfHatPatch` as
+      * $$AfHatPatch = \frac{\mathbf{S}_f}{\|\mathbf{S}_f\|}$$
+
 ##### K
 
 ```cpp
@@ -636,8 +667,10 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::K
 }
 ```
 
+Curvature of interface between two phases, used for interface compression
+
 $$
-K = \nabla \cdot (nHatfv \cdot \mathbf{S}_f)
+K = \nabla \cdot (nHatfv \cdot \mathbf{S}_f) = \nabla \cdot \left(\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right)
 $$
 
 ##### Constructors 1: phaseSystem
@@ -844,9 +877,21 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::rho() const
 }
 ```
 
+return the mixture density
+
+if there is no stationary phases:
+
 $$
-\rho = 
+\rho = \sum_{k = 1}^{N} \alpha^k \rho^k
 $$
+
+else
+
+$$
+\rho = \frac{\sum_{k = 1}^{N} \alpha^k \rho^k}{\sum_{l=1}^{M} \alpha^l}
+$$
+
+where $M$ is the number of moving phases
 
 ##### U
 
@@ -878,6 +923,22 @@ Foam::tmp<Foam::volVectorField> Foam::phaseSystem::U() const
 }
 ```
 
+return the mixture velocity
+
+if there is no stationary phases:
+
+$$
+\mathbf{U} = \sum_{k = 1}^{N} \alpha^k \mathbf{U}^k
+$$
+
+else
+
+$$
+\mathbf{U} = \frac{\sum_{k = 1}^{N} \alpha^k \mathbf{U}^k}{\sum_{l=1}^{M} \alpha^l}
+$$
+
+where $M$ is the number of moving phases
+
 ##### E
 
 ```cpp
@@ -900,7 +961,7 @@ Foam::phaseSystem::E(const phasePairKey& key) const
 }
 ```
 
-Return the aspect-ratio for a pair.
+Return the aspect-ratio $E_{k,l}$ for a pair of $k$th phase and $l$th phase.
 
 ##### sigma1
 
@@ -924,7 +985,7 @@ Foam::phaseSystem::sigma(const phasePairKey& key) const
 }
 ```
 
-Return the surface tension coefficient for a pair
+Return the surface tension coefficient $\sigma_{k,l}$ for a pair $k$th phase and $l$th phase
 
 ##### sigma2
 
@@ -946,7 +1007,7 @@ Foam::phaseSystem::sigma(const phasePairKey& key, label patchi) const
 }
 ```
 
-Return the surface tension coefficient for a pair on a patch
+Return the surface tension coefficient $\sigma_{k,l}$ for a pair $k$th phase and $l$th phase on a patch
 
 ##### nearInterface
 
@@ -1009,6 +1070,7 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::dmdtf
     );
 }
 ```
+return the mass transfer rate for an interface
 
 $$
 dmdtf = 0
@@ -1022,6 +1084,8 @@ Foam::PtrList<Foam::volScalarField> Foam::phaseSystem::dmdts() const
     return PtrList<volScalarField>(phaseModels_.size());
 }
 ```
+
+return a mass transfer rates for each phase
 
 ##### incompressible
 
@@ -1056,6 +1120,8 @@ bool Foam::phaseSystem::implicitPhasePressure() const
     return false;
 }
 ```
+
+is the phase pressure treated implicit
 
 ##### surfaceTension
 
@@ -1102,8 +1168,15 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::surfaceTension
 ```
 
 $$
-tSurfaceTension = \sum_{i=2}^N \sigma K (phase_i \nabla phase_1 - phase_1 \nabla phase_i)
+tSurfaceTension = \sum_{i=2}^N \sigma_{1,i} K_{1,i} (phase_i \nabla phase_1 - phase_1 \nabla phase_i)
 $$
+
+or
+
+$$
+tSurfaceTension = \sum_{i=2}^N \sigma_{1,i} K_{1,i} ((\alpha^i)_f (\nabla \alpha^1)_f - (\alpha^1)_f (\nabla \alpha^i)_f)
+$$
+
 
 ##### correct
 
@@ -1994,6 +2067,69 @@ solve
                 }
             }
 ```
+
+* if phase pressure is treat implicitly and `rAUs` or `rAUfs` exists:
+  * define and get `DByAfs`
+  * for every phase to be solved:
+    * get $\alpha^k$
+    * define `alphaDbyA` as
+      * $$alphaDbyA = (\max(\alpha^k, 0))_f \cdot (\max(1-\alpha^k, 0))_f \cdot DByAf^k$$
+    * define `alphaEqn` as
+      * $$\left(\frac{\partial \alpha^k}{\partial t}\right)_{implicit} - \left(\frac{\partial \alpha^k}{\partial t}\right)_{explicit} - \nabla \cdot (alphaDbyA \cdot \nabla \alpha)$$
+    * solve `alphaEqn`
+    * $$alphaPhiRef() = alphaPhiRef() + alphaEqn.flux()$$
+
+```cpp
+            // Report the phase fractions and the phase fraction sum
+            forAll(solvePhases, solvePhasei)
+            {
+                phaseModel& phase = solvePhases[solvePhasei];
+
+                Info<< phase.name() << " fraction, min, max = "
+                    << phase.weightedAverage(mesh_.V()).value()
+                    << ' ' << min(phase).value()
+                    << ' ' << max(phase).value()
+                    << endl;
+            }
+```
+
+* print the phase fractions of phases to be solved
+
+```cpp
+            if (!referencePhasePtr)
+            {
+                volScalarField sumAlphaMoving
+                (
+                    IOobject
+                    (
+                        "sumAlphaMoving",
+                        mesh_.time().timeName(),
+                        mesh_
+                    ),
+                    mesh_,
+                    dimensionedScalar(dimless, 0)
+                );
+                forAll(movingPhases(), movingPhasei)
+                {
+                    sumAlphaMoving += movingPhases()[movingPhasei];
+                }
+
+                Info<< "Phase-sum volume fraction, min, max = "
+                    << (sumAlphaMoving + 1 - alphaVoid)()
+                      .weightedAverage(mesh_.V()).value()
+                    << ' ' << min(sumAlphaMoving + 1 - alphaVoid).value()
+                    << ' ' << max(sumAlphaMoving + 1 - alphaVoid).value()
+                    << endl;
+
+                // Correct the sum of the phase fractions to avoid drift
+                forAll(movingPhases(), movingPhasei)
+                {
+                    movingPhases()[movingPhasei] *= alphaVoid/sumAlphaMoving;
+                }
+            }
+```
+
+* 
 
 ### phaseModel
 

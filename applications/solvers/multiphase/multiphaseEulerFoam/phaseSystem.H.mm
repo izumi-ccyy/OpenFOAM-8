@@ -3,7 +3,7 @@
 <node TEXT="phaseSystem.H" FOLDED="false" ID="ID_1450468438" CREATED="1611134120853" MODIFIED="1611134143945" STYLE="oval">
 <font SIZE="18"/>
 <hook NAME="MapStyle">
-    <properties edgeColorConfiguration="#808080ff,#ff0000ff,#0000ffff,#00ff00ff,#ff00ffff,#00ffffff,#7c0000ff,#00007cff,#007c00ff,#7c007cff,#007c7cff,#7c7c00ff" fit_to_viewport="false" show_note_icons="true"/>
+    <properties fit_to_viewport="false" show_note_icons="true" edgeColorConfiguration="#808080ff,#ff0000ff,#0000ffff,#00ff00ff,#ff00ffff,#00ffffff,#7c0000ff,#00007cff,#007c00ff,#7c007cff,#007c7cff,#7c7c00ff"/>
 
 <map_styles>
 <stylenode LOCALIZED_TEXT="styles.root_node" STYLE="oval" UNIFORM_SHAPE="true" VGAP_QUANTITY="24.0 pt">
@@ -112,7 +112,7 @@
 <node TEXT="fillFields_" ID="ID_1404050848" CREATED="1611134817589" MODIFIED="1611134830810"/>
 </node>
 <node TEXT="protected member functions" ID="ID_1271932990" CREATED="1611134929925" MODIFIED="1611134940321">
-<node TEXT="calcPhi()" FOLDED="true" ID="ID_36785264" CREATED="1611134943209" MODIFIED="1611140149388" BACKGROUND_COLOR="#ffff99">
+<node TEXT="calcPhi()" ID="ID_36785264" CREATED="1611134943209" MODIFIED="1611140149388" BACKGROUND_COLOR="#ffff99">
 <node TEXT="Calculate and return the mixture flux" ID="ID_936739669" CREATED="1611134976553" MODIFIED="1611134980227"/>
 </node>
 <node TEXT="generatePairs()" FOLDED="true" ID="ID_428338018" CREATED="1611134981556" MODIFIED="1611140157377" BACKGROUND_COLOR="#ffff99">
@@ -136,10 +136,18 @@
 <node TEXT="Re-normalise the flux of the phases around the specified mixture mean" ID="ID_807894114" CREATED="1611135273080" MODIFIED="1611135282170"/>
 </node>
 <node TEXT="functions required for interface compression" ID="ID_153268146" CREATED="1611135313785" MODIFIED="1611135331681">
-<node TEXT="nHatfv()" ID="ID_505414119" CREATED="1611135334301" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99"/>
-<node TEXT="nHatf()" ID="ID_376795922" CREATED="1611135344961" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99"/>
-<node TEXT="correctContactAngle()" ID="ID_449202687" CREATED="1611135353296" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99"/>
-<node TEXT="K()" ID="ID_1407656221" CREATED="1611135380801" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99"/>
+<node TEXT="nHatfv()" ID="ID_505414119" CREATED="1611135334301" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99">
+<node TEXT="Normal to interface between two phases, used for interface compression" ID="ID_433577278" CREATED="1611342452202" MODIFIED="1611342461536"/>
+</node>
+<node TEXT="nHatf()" ID="ID_376795922" CREATED="1611135344961" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99">
+<node TEXT="Normal to interface between two phases dotted with face areas, used for interface compression" ID="ID_1753218332" CREATED="1611342430662" MODIFIED="1611342442484"/>
+</node>
+<node TEXT="correctContactAngle()" ID="ID_449202687" CREATED="1611135353296" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99">
+<node TEXT="Correction for the boundary condition on the unit normal nHat on walls to produce the correct contact angle." ID="ID_1851926425" CREATED="1611342370471" MODIFIED="1611342385528"/>
+</node>
+<node TEXT="K()" ID="ID_1407656221" CREATED="1611135380801" MODIFIED="1611140205613" BACKGROUND_COLOR="#ffff99">
+<node TEXT="Curvature of interface between two phases, used for interface compression" ID="ID_517662494" CREATED="1611342399819" MODIFIED="1611342429596"/>
+</node>
 </node>
 <node TEXT="functions required by twoPhaseSystem" ID="ID_722098846" CREATED="1611135416708" MODIFIED="1611140517234"><richcontent TYPE="DETAILS">
 
@@ -153,7 +161,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Kd()" ID="ID_1882234470" CREATED="1611135434425" MODIFIED="1611135446229">
 <node TEXT="Return the drag coefficient for phase pair" ID="ID_436775323" CREATED="1611135447653" MODIFIED="1611135450693"/>
@@ -198,7 +205,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="" ID="ID_403249965" CREATED="1611136567005" MODIFIED="1611136567005">
 <hook NAME="FirstGroupNode"/>
@@ -216,7 +222,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="movingPhases()" ID="ID_1324486329" CREATED="1611136195104" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"><richcontent TYPE="DETAILS">
@@ -231,7 +236,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="stationaryPhases()" ID="ID_810310745" CREATED="1611136200600" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"><richcontent TYPE="DETAILS">
@@ -246,7 +250,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="anisothermalPhases()" ID="ID_424722533" CREATED="1611136212933" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"><richcontent TYPE="DETAILS">
@@ -261,7 +264,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="multiComponentPhases()" ID="ID_1756163998" CREATED="1611136222728" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"><richcontent TYPE="DETAILS">
@@ -276,7 +278,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="phasePairs()" ID="ID_1446552678" CREATED="1611136234704" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"/>
@@ -293,7 +294,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="dpdt()" ID="ID_811239906" CREATED="1611136263477" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"><richcontent TYPE="DETAILS">
@@ -308,7 +308,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="MRF()" ID="ID_1174922546" CREATED="1611136274428" MODIFIED="1611139994977" BACKGROUND_COLOR="#99ff99"/>
@@ -334,7 +333,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Check availability of a sub model for a given phase pair" ID="ID_1721560936" CREATED="1611136797861" MODIFIED="1611136812174"/>
 <node TEXT="Check availability of a sub model between two phases" ID="ID_1226228767" CREATED="1611136812641" MODIFIED="1611136816554"/>
@@ -351,7 +349,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Return a sub model between a phase pair" ID="ID_509198654" CREATED="1611136824233" MODIFIED="1611136827678"/>
 <node TEXT="Return a sub model between two phases" ID="ID_1372294155" CREATED="1611136827825" MODIFIED="1611136835178"/>
@@ -370,10 +367,10 @@
 </node>
 </node>
 <node TEXT="properties" ID="ID_860397392" CREATED="1611137067513" MODIFIED="1611137071303">
-<node TEXT="rho()" FOLDED="true" ID="ID_1432112446" CREATED="1611137072170" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
+<node TEXT="rho()" ID="ID_1432112446" CREATED="1611137072170" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
 <node TEXT="Return the mixture density" ID="ID_633095318" CREATED="1611137146729" MODIFIED="1611137150043"/>
 </node>
-<node TEXT="U()" FOLDED="true" ID="ID_1575047611" CREATED="1611137086702" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
+<node TEXT="U()" ID="ID_1575047611" CREATED="1611137086702" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
 <node TEXT="Return the mixture velocity" ID="ID_1036632064" CREATED="1611137154938" MODIFIED="1611137168384"/>
 </node>
 <node TEXT="E()" FOLDED="true" ID="ID_1129079783" CREATED="1611137090433" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
@@ -391,7 +388,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Return the surface tension coefficient for a pair" ID="ID_1552367620" CREATED="1611137186801" MODIFIED="1611137197751"/>
 <node TEXT="Return the surface tension coefficient for a pair on a patch" ID="ID_1177302624" CREATED="1611137198345" MODIFIED="1611137207900"/>
@@ -399,7 +395,7 @@
 <node TEXT="nearInterface()" FOLDED="true" ID="ID_1447916056" CREATED="1611137105241" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99">
 <node TEXT="Indicator of the proximity of the interface, field values are 1 near and 0 away for the interface" ID="ID_463060695" CREATED="1611137209494" MODIFIED="1611137229494"/>
 </node>
-<node TEXT="dmdtf()" FOLDED="true" ID="ID_522990057" CREATED="1611137116257" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
+<node TEXT="dmdtf()" ID="ID_522990057" CREATED="1611137116257" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
 
 <html>
   <head>
@@ -411,11 +407,10 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Return the mass transfer rate for an interface" ID="ID_1877560237" CREATED="1611137245590" MODIFIED="1611137258465"/>
 </node>
-<node TEXT="dmdts()" FOLDED="true" ID="ID_1096658048" CREATED="1611137127634" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
+<node TEXT="dmdts()" ID="ID_1096658048" CREATED="1611137127634" MODIFIED="1611140264766" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
 
 <html>
   <head>
@@ -427,7 +422,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Return the mass transfer rates for each phase" ID="ID_439410465" CREATED="1611137259525" MODIFIED="1611137268905"/>
 </node>
@@ -455,7 +449,6 @@
     </ul>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="momentumTransfer()" FOLDED="true" ID="ID_1250333864" CREATED="1611137650254" MODIFIED="1611137668016">
 <node TEXT="Return the momentum transfer matrices for the cell-based algorithm" ID="ID_247038376" CREATED="1611137669046" MODIFIED="1611137693287"/>
@@ -483,7 +476,7 @@
 <node TEXT="KdUByAs()" FOLDED="true" ID="ID_110024133" CREATED="1611137867894" MODIFIED="1611137884304">
 <node TEXT="Return the explicit part of the drag force" ID="ID_1340107870" CREATED="1611138169130" MODIFIED="1611138184457"/>
 </node>
-<node TEXT="implicitPhasesPressure()" FOLDED="true" ID="ID_285567292" CREATED="1611137891282" MODIFIED="1611140289094" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
+<node TEXT="implicitPhasesPressure()" ID="ID_285567292" CREATED="1611137891282" MODIFIED="1611140289094" BACKGROUND_COLOR="#ffff99"><richcontent TYPE="DETAILS">
 
 <html>
   <head>
@@ -495,7 +488,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Returns true if the phase pressure is treated implicitly in the phase fraction equation" ID="ID_524076076" CREATED="1611137926478" MODIFIED="1611137949183"/>
 <node TEXT="Returns true if the phase pressure is treated implicitly in the phase fraction equation for any phase" ID="ID_1192277971" CREATED="1611137949653" MODIFIED="1611137956407"/>
@@ -530,7 +522,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Return the surface tension force" ID="ID_1762813242" CREATED="1611138035966" MODIFIED="1611138048917"/>
 </node>
@@ -547,7 +538,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="solve()" FOLDED="true" ID="ID_923328542" CREATED="1611137460285" MODIFIED="1611140051272" BACKGROUND_COLOR="#ff99ff">
 <node TEXT="Solve for the phase fractions" ID="ID_281401809" CREATED="1611137571289" MODIFIED="1611137574158"/>
@@ -575,7 +565,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="read()" ID="ID_564768683" CREATED="1611137340593" MODIFIED="1611140364278" BACKGROUND_COLOR="#ffff99">
 <node TEXT="Read base phaseProperties dictionary" ID="ID_439216723" CREATED="1611137356905" MODIFIED="1611137360874"/>
@@ -597,7 +586,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="for volScarlarField" ID="ID_1674095355" CREATED="1611138361135" MODIFIED="1611138368427"/>
 <node TEXT="for surfaceScalarField" ID="ID_1130952232" CREATED="1611138368898" MODIFIED="1611138378971"/>
