@@ -53,6 +53,11 @@
         "fvcReconstruct.C": "cpp",
         "MRFZone.C": "cpp",
         "displacementComponentLaplacianFvMotionSolver.C": "cpp",
-        "lduMatrix.C": "cpp"
+        "lduMatrix.C": "cpp",
+        "Gosman.C": "cpp",
+        "turbulentDispersionModel.C": "cpp",
+        "liftModel.C": "cpp",
+        "progmesh.C": "cpp",
+        "dimensionSet.C": "cpp"
     }
 }

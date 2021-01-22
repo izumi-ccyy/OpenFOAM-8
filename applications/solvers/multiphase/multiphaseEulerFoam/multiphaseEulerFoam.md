@@ -6,6 +6,7 @@
       - [phaseSystem.H](#phasesystemh)
       - [phaseSystemI.H](#phasesystemih)
       - [phaseSystemNew.C](#phasesystemnewc)
+      - [phaseSystemTemplates.C](#phasesystemtemplatesc)
       - [phaseSystem.C](#phasesystemc)
         - [calcPhi](#calcphi)
         - [generatePairs](#generatepairs)
@@ -41,6 +42,43 @@
         - [byDt1](#bydt1)
         - [byDt2](#bydt2)
       - [phaseSystemSolve.C](#phasesystemsolvec)
+        - [Definitions to solve the equation](#definitions-to-solve-the-equation)
+        - [The loop to solve the equation](#the-loop-to-solve-the-equation)
+          - [Source](#source)
+          - [Controls](#controls)
+          - [Solving loop](#solving-loop)
+    - [phaseModel](#phasemodel)
+      - [Summary](#summary)
+      - [phaseModel](#phasemodel-1)
+        - [phaseModel.C](#phasemodelc)
+        - [phaseModel.H](#phasemodelh)
+      - [AnisothermalPhaseModel](#anisothermalphasemodel)
+        - [AnisothermalPhaseModel.C](#anisothermalphasemodelc)
+        - [AnisothermalPhaseModel.H](#anisothermalphasemodelh)
+      - [InertPhaseModel](#inertphasemodel)
+        - [InertPhaseModel.C](#inertphasemodelc)
+        - [InertPhaseModel.H](#inertphasemodelh)
+      - [IsothermalPhaseModel](#isothermalphasemodel)
+        - [IsothermalPhaseModel.C](#isothermalphasemodelc)
+        - [IsothermalPhaseModel.H](#isothermalphasemodelh)
+      - [MovingPhaseModel](#movingphasemodel)
+        - [MovingPhaseModel.C](#movingphasemodelc)
+        - [MovingPhaseModel.H](#movingphasemodelh)
+      - [MultiComponentPhaseModel](#multicomponentphasemodel)
+        - [MultiComponentPhaseModel.C](#multicomponentphasemodelc)
+        - [MultiComponentPhaseModel.H](#multicomponentphasemodelh)
+      - [PurePhaseModel](#purephasemodel)
+        - [PurePhaseModel.C](#purephasemodelc)
+        - [PurePhaseModel.H](#purephasemodelh)
+      - [ReactingPhaseModel](#reactingphasemodel)
+        - [ReactingPhaseModel.C](#reactingphasemodelc)
+        - [ReactingPhaseModel.H](#reactingphasemodelh)
+      - [StationaryPhaseModel](#stationaryphasemodel)
+        - [StationaryPhaseModel.C](#stationaryphasemodelc)
+        - [StationaryPhaseModel.H](#stationaryphasemodelh)
+      - [ThermoPhaseModel](#thermophasemodel)
+        - [ThermoPhaseModel.C](#thermophasemodelc)
+        - [ThermoPhaseModel.H](#thermophasemodelh)
   - [multiPhaseEulerFoam](#multiphaseeulerfoam-1)
     - [createFieldRefs.H](#createfieldrefsh)
     - [createFields.H](#createfieldsh)
@@ -73,6 +111,16 @@
           - [Correct p_rgh for consistency with p and the updated densities](#correct-p_rgh-for-consistency-with-p-and-the-updated-densities)
         - [clear rAUs](#clear-raus)
     - [PUf](#puf)
+    - [multiphaseSystems](#multiphasesystems)
+      - [make](#make)
+        - [files](#files)
+        - [options](#options)
+      - [multiphaseSystems.C](#multiphasesystemsc)
+        - [basicMultiphaseSystem](#basicmultiphasesystem)
+        - [interfaceCompositionPhaseChangeMultiphaseSystem](#interfacecompositionphasechangemultiphasesystem)
+        - [thermalPhaseChangeMultiphaseSystem](#thermalphasechangemultiphasesystem)
+        - [populationBalanceMultiphaseSystem](#populationbalancemultiphasesystem)
+        - [thermalPhaseChangePopulationBalanceMultiphaseSystem](#thermalphasechangepopulationbalancemultiphasesystem)
 
 ## phaseSystems
 
@@ -143,9 +191,85 @@ inline const Foam::fvMesh& Foam::phaseSystem::mesh() const
 }
 ```
 
+The following functions are defined here:
+
+* mesh()
+* phases()
+* movingPhases()
+* stationaryPhases()
+* anisothermalPhases()
+* multiComponentPhases()
+* phasePairs()
+* otherPhase(const phaseModel& phase)
+* phi()
+* dpdt()
+* MRF()
+* fvOptions()
+
 #### phaseSystemNew.C
 
-create a new `phaseSystem`
+```cpp
+Foam::autoPtr<Foam::phaseSystem> Foam::phaseSystem::New
+(
+    const fvMesh& mesh
+)
+{
+    const word phaseSystemType
+    (
+        IOdictionary
+        (
+            IOobject
+            (
+                propertiesName,
+                mesh.time().constant(),
+                mesh,
+                IOobject::MUST_READ_IF_MODIFIED,
+                IOobject::NO_WRITE,
+                false
+            )
+        ).lookup("type")
+    );
+
+    Info<< "Selecting phaseSystem "
+        << phaseSystemType << endl;
+
+    dictionaryConstructorTable::iterator cstrIter =
+        dictionaryConstructorTablePtr_->find(phaseSystemType);
+
+    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    {
+        FatalErrorInFunction
+            << "Unknown phaseSystemType type "
+            << phaseSystemType << endl << endl
+            << "Valid phaseSystem types are : " << endl
+            << dictionaryConstructorTablePtr_->sortedToc()
+            << exit(FatalError);
+    }
+
+    return cstrIter()(mesh);
+}
+```
+
+create a new `phaseSystem` containing one or more phases types
+
+#### phaseSystemTemplates.C
+
+define some protected member function:
+
+* createSubModels()
+* generatePairsAndSubModels()
+
+define some member functions:
+
+* fillFields()
+* foundSubModel()
+* lookupSubModel()
+* foundBlendedSubModel()
+* lookupBlendedSubModel()
+
+define some inline function
+
+* addField()
 
 #### phaseSystem.C
 
@@ -356,11 +480,15 @@ Foam::tmp<Foam::surfaceVectorField> Foam::phaseSystem::nHatfv
 Normal to interface between two phases Used for interface compression
 
 $$
-gradAlpha = \alpha_2 \nabla \alpha_1 - \alpha_1 \nabla \alpha_2
+gradAlphaf = (\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f
 $$
 
 $$
-nHatfv = \frac{gradAlpha}{|gradAlpha| + deltaN_}
+nHatfv = \frac{gradAlphaf}{\|gradAlphaf\| + deltaN\_}
+$$
+
+$$
+nHatfv = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_}
 $$
 
 ##### nHatf
@@ -378,7 +506,7 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::nHatf
 ```
 
 $$
-nHatf = nHatfv \cdot \mathbf{S}_f
+nHatf = nHatfv \cdot \mathbf{S}_f = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f
 $$
 
 ##### correctContactAngle
@@ -1188,6 +1316,762 @@ $$
 
 #### phaseSystemSolve.C
 
+##### Definitions to solve the equation
+
+```cpp
+void Foam::phaseSystem::solve
+(
+    const PtrList<volScalarField>& rAUs,
+    const PtrList<surfaceScalarField>& rAUfs
+)
+{
+    ...
+}
+```
+
+define the solve function
+
+```cpp
+    const dictionary& alphaControls = mesh_.solverDict("alpha");
+
+    const label nAlphaSubCycles(alphaControls.lookup<label>("nAlphaSubCycles"));
+    const label nAlphaCorr(alphaControls.lookup<label>("nAlphaCorr"));
+
+    const bool LTS = fv::localEulerDdt::enabled(mesh_);
+
+    // Optional reference phase which is not solved for
+    // but obtained from the sum of the other phases
+    phaseModel* referencePhasePtr = nullptr;
+
+    // The phases which are solved
+    // i.e. the moving phases less the optional reference phase
+    phaseModelPartialList solvePhases;
+```
+
+define and get some control variables:
+
+* get `alphaControls` from dictionary
+* define and get `nAlphaSubCycles` and `nAlphaCorr`
+* get `LTS`
+* get reference phase pointer `referencePhasePtr`
+  * Optional reference phase which is not solved for but obtained from the sum of the other phases
+* get the list of phase that are to be solved `solvePhases`
+
+```cpp
+    if (referencePhaseName_ != word::null)
+    {
+        referencePhasePtr = &phases()[referencePhaseName_];
+
+        solvePhases.setSize(movingPhases().size() - 1);
+        label solvePhasesi = 0;
+        forAll(movingPhases(), movingPhasei)
+        {
+            if (&movingPhases()[movingPhasei] != referencePhasePtr)
+            {
+                solvePhases.set(solvePhasesi++, &movingPhases()[movingPhasei]);
+            }
+        }
+    }
+    else
+    {
+        solvePhases = movingPhases();
+    }
+```
+
+get `solvePhases` from `movingPhases`
+
+* if there is a reference phase
+  * reduce 1 from the size of solved phases (because reference phase is not solved)
+  * for every moving phase:
+    * if current moving phase is not the reference phase, then
+      * set current moving phase as `slovePhases`
+* else
+  * set `solvePhases` as `movingPhases`
+
+```cpp
+    // The phases included in the flux sum limit
+    // which is all moving phases if the number of solved phases is > 1
+    // otherwise it is just the solved phases
+    // as the flux sum limit is not needed in this case
+    phaseModelPartialList fluxPhases;
+    if (solvePhases.size() == 1)
+    {
+        fluxPhases = solvePhases;
+    }
+    else
+    {
+        fluxPhases = movingPhases();
+    }
+```
+
+* The phases included in the flux sum limit which is all moving phases if the number of solved phases is > 1
+* otherwise it is just the solved phases as the flux sum limit is not needed in this case
+
+```cpp
+    forAll(phases(), phasei)
+    {
+        phases()[phasei].correctBoundaryConditions();
+    }
+```
+
+* for every phase:
+  * correct boundary conditions
+
+```cpp
+    PtrList<surfaceScalarField> alphaPhiDbyA0s(phases().size());
+    if (implicitPhasePressure() && (rAUs.size() || rAUfs.size()))
+    {
+        const PtrList<surfaceScalarField> DByAfs(this->DByAfs(rAUs, rAUfs));
+
+        forAll(solvePhases, solvePhasei)
+        {
+            phaseModel& phase = solvePhases[solvePhasei];
+            volScalarField& alpha = phase;
+
+            alphaPhiDbyA0s.set
+            (
+                phase.index(),
+                DByAfs[phase.index()]
+               *fvc::snGrad(alpha, "bounded")*mesh_.magSf()
+            );
+        }
+    }
+```
+
+define a pointer list of `surfaceScalarField` variables with the size of phase size, `alphaPhiDbyA0s`
+
+* if phase pressure is treated implicitly and `rAUs` or `rAUfs` exists:
+  * define a pointer list of `surfaceScalarField` variables `DByAfs`
+  * for every phase to be solved (solvePhases):
+    * define and get $\alpha$
+    * set `alphaPhiDbyA0s` as
+      * $$alphaPhiDbyA0^k = DByAfs^k (\nabla \alpha^k)_f \|\mathbf{S}_f\|$$
+
+`DByAfs()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.H`, is to return the phase diffusivity divided by the momentum central coefficient
+
+```cpp
+    // Calculate the void fraction
+    volScalarField alphaVoid
+    (
+        IOobject
+        (
+            "alphaVoid",
+            mesh_.time().timeName(),
+            mesh_
+        ),
+        mesh_,
+        dimensionedScalar(dimless, 1)
+    );
+    forAll(stationaryPhases(), stationaryPhasei)
+    {
+        alphaVoid -= stationaryPhases()[stationaryPhasei];
+    }
+```
+
+* define `alphaVoid() = 1` as the void fraction
+* for every stationary phases:
+  * $$alphaVoid - alphaVoid - \alpha_{stationary, k}$$
+  * namely
+    * $$alphaVoid = 1 - \sum_{k = 1}^N \alpha_{stationary, k}$$
+
+```cpp
+    bool dilatation = false;
+    forAll(fluxPhases, fluxPhasei)
+    {
+        if (fluxPhases[fluxPhasei].divU().valid())
+        {
+            dilatation = true;
+            break;
+        }
+    }
+```
+
+* define `dilatation` as `false`
+* for every flux phase:
+  * if there is a valid $\nabla \cdot \mathbf{U}$ of flux phases, in other words, $\nabla \cdot \mathbf{U} \neq 0$, then
+    * `dilatation` is `true` 
+
+##### The loop to solve the equation
+
+```cpp
+    for (int acorr=0; acorr<nAlphaCorr; acorr++)
+    {
+        ...
+    }
+```
+
+* for $acorr < nAlphaCorr$, to solve $\alpha$ equation
+
+###### Source
+
+```cpp
+        PtrList<volScalarField::Internal> Sps(phases().size());
+        PtrList<volScalarField::Internal> Sus(phases().size());
+
+        forAll(fluxPhases, fluxPhasei)
+        {
+            phaseModel& phase = fluxPhases[fluxPhasei];
+            volScalarField& alpha = phase;
+            const label phasei = phase.index();
+
+            Sps.set
+            (
+                phasei,
+                new volScalarField::Internal
+                (
+                    IOobject
+                    (
+                        "Sp",
+                        mesh_.time().timeName(),
+                        mesh_
+                    ),
+                    mesh_,
+                    dimensionedScalar(dimless/dimTime, 0)
+                )
+            );
+
+            Sus.set
+            (
+                phasei,
+                new volScalarField::Internal
+                (
+                    "Su",
+                    min(alpha, scalar(1))
+                    *fvc::div(fvc::absolute(phi_, phase.U()))
+                )
+            );
+
+            if (dilatation)
+            {
+                // Construct the dilatation rate source term
+                volScalarField::Internal dgdt
+                (
+                    volScalarField::Internal::New
+                    (
+                        "dgdt",
+                        mesh_,
+                        dimensionedScalar(dimless/dimTime, 0)
+                    )
+                );
+
+                forAll(phases(), phasej)
+                {
+                    const phaseModel& phase2 = phases()[phasej];
+                    const volScalarField& alpha2 = phase2;
+
+                    if (&phase2 != &phase)
+                    {
+                        if (phase.divU().valid())
+                        {
+                            dgdt += alpha2()*phase.divU()()();
+                        }
+
+                        if (phase2.divU().valid())
+                        {
+                            dgdt -= alpha()*phase2.divU()()();
+                        }
+                    }
+                }
+
+                volScalarField::Internal& Sp = Sps[phasei];
+                volScalarField::Internal& Su = Sus[phasei];
+
+                forAll(dgdt, celli)
+                {
+                    if (dgdt[celli] > 0)
+                    {
+                        Sp[celli] -= dgdt[celli]/max(1 - alpha[celli], 1e-4);
+                        Su[celli] += dgdt[celli]/max(1 - alpha[celli], 1e-4);
+                    }
+                    else if (dgdt[celli] < 0)
+                    {
+                        Sp[celli] += dgdt[celli]/max(alpha[celli], 1e-4);
+                    }
+                }
+            }
+        }
+```
+
+* define a pointer list of `volScalarField` variables internal fields, `Sps` and `Sus`
+* for every flux phases:
+  * define and get $\alpha$
+  * get index of current phase `phasei`
+  * initialize `Sps` and `Sus`:
+    * $Sp^k = 0$
+    * $Su^k = \min(\alpha^k, 1) \nabla \mathbf{U}^k_{absolute}$
+    * if `dilatation` is `true`, namely for one phase, $\nabla \cdot \mathbf{U} \neq 0$
+      * initialize `dgdt`:
+        * $$dgdt = 0$$
+      * for every phase:
+        * define and get current phase (`phase2`) volume fraction as $\alpha_2$
+        * if `phase2` is not `phase`
+          * if $\nabla \cdot \mathbf{U} \neq 0$ for `phase`, then
+            * $$dgdt = dgdt + \alpha_2 \nabla \cdot \mathbf{U}^k $$
+          * if $\nabla \cdot \mathbf{U} \neq 0$ for `phase2`, then
+            * $$dgdt = dgdt - \alpha \nabla \cdot \mathbf{U}^l$$
+        * namely,
+          * $$dgdt = \sum_{k = 1}^n \sum_{l = 1, l \neq k}^N \alpha_l \nabla \cdot \mathbf{U}^k - \sum_{k = 1}^N \sum_{l = 1, l \neq k}^n \alpha_k \nabla \cdot \mathbf{U}^l$$
+          * where, $n$ is the number of phases whose $\nabla \cdot \mathbf{U} \neq 0$ while $N$ is the total number of flux phases
+      * get $Sp$ and $Su$ for current phase
+        * $Sp^k$ and $Su^k$
+      * for $dgdt$ of every grid cell $i$:
+        * if $dgdt[i] > 0$
+          * $$Sp^k[i] = Sp^k[i] - \frac{dgdt[i]}{\max(1-\alpha^k[i], 10^{-4})}$$
+          * $$Su^k[i] = Su^k[i] + \frac{dgdt[i]}{\max(1-\alpha^k[i], 10^{-4})}$$
+        * else, if $dgdt[i] < 0$
+          * $$Sp^k[i] = Sp^k[i] + \frac{dgdt[i]}{\max(\alpha^k[i], 10^{-4})}$$
+
+###### Controls
+
+```cpp
+        tmp<volScalarField> trSubDeltaT;
+
+        if (LTS && nAlphaSubCycles > 1)
+        {
+            trSubDeltaT =
+                fv::localEulerDdt::localRSubDeltaT(mesh_, nAlphaSubCycles);
+        }
+
+        List<volScalarField*> alphaPtrs(phases().size());
+        forAll(phases(), phasei)
+        {
+            alphaPtrs[phasei] = &phases()[phasei];
+        }
+```
+
+* define `trSubDeltaT`
+* if LTS and `nAlphaSubCycles` > 1, then
+  * $$trSubDeltaT = \frac{nAlphaSubCycles}{\Delta t}$$
+* define a list of pointer for `volScalarField` variables $\alpha$, `alphaPtrs`
+* for every phase:
+  * get the pointer for $\alpha$
+
+`localRSubDeltaT` can be found in `src\finiteVolume\finiteVolume\ddtSchemes\localEulerDdtScheme\localEulerDdtScheme.H` and `src\finiteVolume\finiteVolume\ddtSchemes\localEulerDdtScheme\localEulerDdt.C`, is to calculate and return the reciprocal of the local sub-cycling time-step
+
+```cpp
+Foam::tmp<Foam::volScalarField> Foam::fv::localEulerDdt::localRSubDeltaT
+(
+    const fvMesh& mesh,
+    const label nAlphaSubCycles
+)
+{
+    return tmp<volScalarField>
+    (
+        new volScalarField
+        (
+            rSubDeltaTName,
+            nAlphaSubCycles
+           *mesh.objectRegistry::lookupObject<volScalarField>
+            (
+                rDeltaTName
+            )
+        )
+    );
+}
+```
+
+$$
+localRSubDeltaT = \frac{nAlphaSubCycles}{\Delta t}
+$$
+
+###### Solving loop
+
+```cpp
+        for
+        (
+            subCycle<volScalarField, subCycleFields> alphaSubCycle
+            (
+                alphaPtrs,
+                nAlphaSubCycles
+            );
+            !(++alphaSubCycle).end();
+        )
+        {
+            ...
+        }
+```
+
+solve the equations in the subcycle
+
+Generate face-alphas
+
+```cpp
+            // Generate face-alphas
+            PtrList<surfaceScalarField> alphafs(phases().size());
+            if (solvePhases.size() > 1)
+            {
+                forAll(phases(), phasei)
+                {
+                    phaseModel& phase = phases()[phasei];
+                    alphafs.set
+                    (
+                        phasei,
+                        new surfaceScalarField
+                        (
+                            IOobject::groupName("alphaf", phase.name()),
+                            upwind<scalar>(mesh_, phi_).interpolate(phase)
+                        )
+                    );
+                }
+            }
+```
+
+* define a pointer list of $\alpha$ on surface, $\alpha_f$
+* if the number of phases to be solved is larger than 1, then:
+  * for every phase:
+    * get $k$th `phase`
+    * set `alphafs` using interpolate with upwind schemes:
+      * $\alpha_f^k$
+
+Create correction fluxes
+
+```cpp
+            // Create correction fluxes
+            PtrList<surfaceScalarField> alphaPhiCorrs(phases().size());
+
+            if (solvePhases.size() > 1)
+            {
+                forAll(stationaryPhases(), stationaryPhasei)
+                {
+                    phaseModel& phase = stationaryPhases()[stationaryPhasei];
+
+                    alphaPhiCorrs.set
+                    (
+                        phase.index(),
+                        new surfaceScalarField
+                        (
+                            IOobject::groupName("alphaPhiCorr", phase.name()),
+                          - upwind<scalar>(mesh_, phi_).flux(phase)
+                        )
+                    );
+                }
+            }
+```
+
+* defien correction fluxes `alphaPhiCorrs`
+* if the number of phases to be solved is larger than 1, then:
+  * for every stationary phases
+    * get stationary phase
+    * set `alphaPhiCorrs` with upwind schemes
+      * $$alphaPhiCorrs = -\phi$$
+
+```cpp
+            forAll(fluxPhases, fluxPhasei)
+            {
+                phaseModel& phase = fluxPhases[fluxPhasei];
+                volScalarField& alpha = phase;
+
+                alphaPhiCorrs.set
+                (
+                    phase.index(),
+                    new surfaceScalarField
+                    (
+                        IOobject::groupName("alphaPhiCorr", phase.name()),
+                        fvc::flux(phi_, alpha, "div(phi," + alpha.name() + ')')
+                    )
+                );
+
+                surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phase.index()];
+
+                forAll(phases(), phasei)
+                {
+                    phaseModel& phase2 = phases()[phasei];
+                    volScalarField& alpha2 = phase2;
+
+                    if (&phase2 == &phase) continue;
+
+                    surfaceScalarField phir(phase.phi() - phase2.phi());
+
+                    cAlphaTable::const_iterator cAlpha
+                    (
+                        cAlphas_.find(phasePairKey(phase.name(), phase2.name()))
+                    );
+
+                    if (cAlpha != cAlphas_.end())
+                    {
+                        surfaceScalarField phic
+                        (
+                            (mag(phi_) + mag(phir))/mesh_.magSf()
+                        );
+
+                        phir +=
+                            min(cAlpha()*phic, max(phic))
+                           *nHatf(alpha, alpha2);
+                    }
+
+                    word phirScheme
+                    (
+                        "div(phir," + alpha2.name() + ',' + alpha.name() + ')'
+                    );
+
+                    alphaPhiCorr += fvc::flux
+                    (
+                       -fvc::flux(-phir, alpha2, phirScheme),
+                        alpha,
+                        phirScheme
+                    );
+                }
+
+                if (alphaPhiDbyA0s.set(phase.index()))
+                {
+                    alphaPhiCorr +=
+                        fvc::interpolate(max(alpha, scalar(0)))
+                       *fvc::interpolate(max(1 - alpha, scalar(0)))
+                       *alphaPhiDbyA0s[phase.index()];
+                }
+
+                phase.correctInflowOutflow(alphaPhiCorr);
+
+                MULES::limit
+                (
+                    geometricOneField(),
+                    alpha,
+                    phi_,
+                    alphaPhiCorr,
+                    Sps[phase.index()],
+                    Sus[phase.index()],
+                    min(alphaVoid.primitiveField(), phase.alphaMax())(),
+                    zeroField(),
+                    true
+                );
+            }
+```
+
+* for every `fluxPhase`:
+  * define and get $\alpha^k$
+  * set flux correction `alphaPhiCorrs`
+    * $$alphaPhiCorrs = \phi$$
+  * get `alphaPhiCorrs` fro current phase
+    * $$alphaPhiCorr = alphaPhiCorr^k = \phi^k$$
+  * for every phase:
+    * get `phase2`, indexed by `l`
+    * get `alpha2`, $\alpha^l$
+    * if $l = k$, namely `phase2` is `phase`, then
+      * stop this step and enter next step of the loop
+    * if $l \neq k$, namely, different phases
+      * define `phir` as
+        * $$phir = \phi^k - \phi^l$$
+      * get `cAlpha` from the list with the name of `phase` and `phase2`
+      * if `cAlpha` is not end, then
+        * defien `phic`
+          * $$phic = \frac{\|\phi\| + \|phir\|}{\|\mathbf{S}_f\|} = \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}$$
+        * calculate `phir`
+          * $$phir = phir + \min(cAlpha phic, \max(phic)) nHatf$$
+          * $$phir = \phi^k - \phi^l + \min\left(c_{\alpha} \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}, \max(\frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|})\right) \times \left[\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right]$$
+      * define word `phirScheme`
+      * calculate `alphaPhiCorr` as
+        * $$alphaPhiCorr = alphaPhiCorr + phir = \phi + \phi_r$$
+  * if $alphaPhiDbyA0^k$ is set, then
+    * $$alphaPhiCorr = alphaPhiCorr + (\max(\alpha^k, 0))_f \cdot (\max(1-\alpha^k, 0))_f \cdot alphaPhiDbyA0^k = \phi + \phi_r  + (\max(\alpha^k, 0))_f \cdot (\max(1-\alpha^k, 0))_f \cdot DByAfs^k (\nabla \alpha^k)_f \|\mathbf{S}_f\|$$
+  * correct flow using `alphaPhiCorr`
+  * define `MULES` as limit
+
+`cAlpha`, $c_{\alpha}$ is the Compression coefficient
+
+`end()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phasePair\phasePair\phasePairI.H`, is to return const_iterator set to beyond the end of the pair
+
+`phi_` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.H`, is the total volumetric flux
+
+`flux` can be found in `src\finiteVolume\finiteVolume\fvc\fvcFluxTemplates.C`, is to reutrn flux
+
+```cpp
+template<class Type>
+tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
+flux
+(
+    const surfaceScalarField& phi,
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    Istream& schemeData
+)
+{
+    return fv::convectionScheme<Type>::New
+    (
+        vf.mesh(),
+        phi,
+        schemeData
+    )().flux(phi, vf);
+}
+```
+
+the second parameter is to provide mesh information
+
+limit flux sums
+
+```cpp
+            if (solvePhases.size() > 1)
+            {
+                // Limit the flux sums, fixing those of the stationary phases
+                labelHashSet fixedAlphaPhiCorrs;
+                forAll(stationaryPhases(), stationaryPhasei)
+                {
+                    fixedAlphaPhiCorrs.insert
+                    (
+                        stationaryPhases()[stationaryPhasei].index()
+                    );
+                }
+                MULES::limitSum(alphafs, alphaPhiCorrs, fixedAlphaPhiCorrs);
+            }
+```
+
+* if the number of solved phases is larger than 1:
+  * define `fixedAlphaPhiCorrs`
+  * for every stationary phase:
+    * insert stationary phases into `fixedAlphaPhiCorrs`
+  * using `MULES` to limit
+
+solve
+
+```cpp
+            forAll(solvePhases, solvePhasei)
+            {
+                phaseModel& phase = solvePhases[solvePhasei];
+                volScalarField& alpha = phase;
+
+                surfaceScalarField& alphaPhi = alphaPhiCorrs[phase.index()];
+                alphaPhi += upwind<scalar>(mesh_, phi_).flux(phase);
+                phase.correctInflowOutflow(alphaPhi);
+
+                MULES::explicitSolve
+                (
+                    geometricOneField(),
+                    alpha,
+                    alphaPhi,
+                    Sps[phase.index()],
+                    Sus[phase.index()]
+                );
+
+                if (alphaSubCycle.index() == 1)
+                {
+                    phase.alphaPhiRef() = alphaPhi;
+                }
+                else
+                {
+                    phase.alphaPhiRef() += alphaPhi;
+                }
+            }
+```
+
+* for every phases to be solved
+  * get $\alpah^k$
+  * define $alphaPhi = alphaPhiCorr^k$, then
+  * $$alphaPhi = alphaPhi + \phi$$
+  *  correct flow with `alphaPhi`
+  *  use `MULES` to solve
+  *  if `alphaSubCycle.index()` = 1,
+     * $$phase.alphaPhiRef() = alphaPhi$$
+  * else
+    * $$phase.alphaPhiRef() = phase.alphaPhiRef() + alphaPhi$$
+
+```cpp
+            if (implicitPhasePressure() && (rAUs.size() || rAUfs.size()))
+            {
+                const PtrList<surfaceScalarField> DByAfs
+                (
+                    this->DByAfs(rAUs, rAUfs)
+                );
+
+                forAll(solvePhases, solvePhasei)
+                {
+                    phaseModel& phase = solvePhases[solvePhasei];
+                    volScalarField& alpha = phase;
+
+                    const surfaceScalarField alphaDbyA
+                    (
+                        fvc::interpolate(max(alpha, scalar(0)))
+                       *fvc::interpolate(max(1 - alpha, scalar(0)))
+                       *DByAfs[phase.index()]
+                    );
+
+                    fvScalarMatrix alphaEqn
+                    (
+                        fvm::ddt(alpha) - fvc::ddt(alpha)
+                      - fvm::laplacian(alphaDbyA, alpha, "bounded")
+                    );
+
+                    alphaEqn.solve();
+
+                    phase.alphaPhiRef() += alphaEqn.flux();
+                }
+            }
+```
+
+### phaseModel
+
+#### Summary
+
+* phaseModel
+* AnisothermalPhaseModel: Class which represents a phase for which the **temperature (strictly energy) varies**. Returns the energy equation and corrects the thermodynamic model.
+* InertPhaseModel: Class which represents an **inert phase, with no reactions**. Returns zero reaction rate and heat.
+* IsothermalPhaseModel: Class which represents a phase for which the **temperature (strictly energy) remains constant**. Returns an empty energy equation and does nothing when correctThermo is called.
+* MovingPhaseModel: Class which represents **a moving fluid phase**. Holds the velocity, fluxes and turbulence model and can generate the momentum equation. The interface is quite restrictive as it also has to support an equivalent stationary model, which does not store motion fields or a turbulence model. Possible future extensions include separating the turbulent functionality into another layer.
+* MultiComponentPhaseModel: Class which represents **a phase with multiple species**. Returns the species' mass fractions, and their governing equations.
+* PurePhaseModel: Class which represents **pure phases, i.e. without any species**. Returns an empty list of mass fractions.
+* ReactingPhaseModel: Class which represents **phases with volumetric reactions**. Returns the reaction rate and heat.
+* StationaryPhaseModel: Class which represents **a stationary (and therefore probably solid) phase**. Generates, but does not store, zero velocity and flux field and turbulent quantities. Throws an error when non-const access is requested to the motion fields or when the momentum equation is requested. Usage must must protect against such calls.
+* ThermoPhaseModel: Class which represents **a phase with a thermodynamic model**. Provides access to the thermodynamic variables. Note that the thermo model itself is not returned as this class could be substituted in the hierarchy for one which mirrors the functionality, but does not include a thermo model; an incompressible phase model, for example.
+
+
+#### phaseModel
+
+##### phaseModel.C
+
+##### phaseModel.H
+
+
+#### AnisothermalPhaseModel
+
+##### AnisothermalPhaseModel.C
+
+##### AnisothermalPhaseModel.H
+
+#### InertPhaseModel
+
+##### InertPhaseModel.C
+
+##### InertPhaseModel.H
+
+#### IsothermalPhaseModel
+
+##### IsothermalPhaseModel.C
+
+##### IsothermalPhaseModel.H
+
+#### MovingPhaseModel
+
+##### MovingPhaseModel.C
+
+##### MovingPhaseModel.H
+
+#### MultiComponentPhaseModel
+
+##### MultiComponentPhaseModel.C
+
+##### MultiComponentPhaseModel.H
+
+#### PurePhaseModel
+
+##### PurePhaseModel.C
+
+##### PurePhaseModel.H
+
+#### ReactingPhaseModel
+
+##### ReactingPhaseModel.C
+
+##### ReactingPhaseModel.H
+
+#### StationaryPhaseModel
+
+##### StationaryPhaseModel.C
+
+##### StationaryPhaseModel.H
+
+#### ThermoPhaseModel
+
+##### ThermoPhaseModel.C
+
+##### ThermoPhaseModel.H
+
 ## multiPhaseEulerFoam
 
 ### createFieldRefs.H
@@ -1473,6 +2357,29 @@ third, get $\alpha$ ($\alpha$ is phase) and $\rho$
 fourth, define $Y$ equation for every specie, as
 
 `YiEqn` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MultiComponentPhaseModel\MultiComponentPhaseModel.C`
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvScalarMatrix>
+Foam::MultiComponentPhaseModel<BasePhaseModel>::YiEqn(volScalarField& Yi)
+{
+    const volScalarField& alpha = *this;
+    const surfaceScalarField alphaRhoPhi(this->alphaRhoPhi());
+    const volScalarField& rho = this->thermo().rho();
+
+    return
+    (
+        fvm::ddt(alpha, rho, Yi)
+      + fvm::div(alphaRhoPhi, Yi, "div(" + alphaRhoPhi.name() + ",Yi)")
+      + this->divj(Yi)
+     ==
+        alpha*this->R(Yi)
+
+      + fvc::ddt(residualAlpha_*rho, Yi)
+      - fvm::ddt(residualAlpha_*rho, Yi)
+    );
+}
+```
 
 $$
 \frac{\partial \alpha \rho Y_i}{\partial t} + \nabla \cdot (\alpha \rho \phi Y_i) - \nabla \cdot (\alpha \alpha_{thermo} \nabla Y_i) = \alpha R(Y_i) + \left(\frac{\partial residualAlpha\_\rho Y_i}{\partial t}\right)_{explicit} - \left(\frac{\partial residualAlpha\_\rho Y_i}{\partial t}\right)_{implicit}
@@ -2719,6 +3626,214 @@ if (!fluid.implicitPhasePressure())
 ### PUf
 
 Not available now.
+
+### multiphaseSystems
+
+#### make
+
+##### files
+
+##### options
+
+#### multiphaseSystems.C
+
+##### basicMultiphaseSystem
+
+```cpp
+    typedef
+        PhaseTransferPhaseSystem
+        <
+            OneResistanceHeatTransferPhaseSystem
+            <
+                MomentumTransferPhaseSystem<phaseSystem>
+            >
+        >
+        basicMultiphaseSystem;
+
+    addNamedToRunTimeSelectionTable
+    (
+        phaseSystem,
+        basicMultiphaseSystem,
+        dictionary,
+        basicMultiphaseSystem
+    );
+```
+
+* `PhaseTransferPhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\PhaseTransferPhaseSystem\PhaseTransferPhaseSystem.H`, is the class which models non-thermally-coupled or weakly thermally coupled mass transfers.
+* `OneResistanceHeatTransferPhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\OneResistanceHeatTransferPhaseSystem\OneResistanceHeatTransferPhaseSystem.H`, is the class which models interfacial heat transfer between a number of phases. **A single heat transfer model is used for each interface.**
+* `MomentumTransferPhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\MomentumTransferPhaseSystem\MomentumTransferPhaseSystem.H`, is the class which models **interfacial momentum transfer** between a number of phases. **Drag, virtual mass, lift, wall lubrication and turbulent dispersion are all modelled.** The explicit contribution from the drag is omitted from the transfer matrices, as this forms part of the solution of the pressure equation.
+
+define the type of `basicMultiphaseSystem` and add it to run time selection table.
+
+Tutorials:
+
+* `Laminar/bubbleColumn`
+
+##### interfaceCompositionPhaseChangeMultiphaseSystem
+
+```cpp
+    typedef
+        InterfaceCompositionPhaseChangePhaseSystem
+        <
+            PhaseTransferPhaseSystem
+            <
+                TwoResistanceHeatTransferPhaseSystem
+                <
+                    MomentumTransferPhaseSystem<phaseSystem>
+                >
+            >
+        >
+        interfaceCompositionPhaseChangeMultiphaseSystem;
+
+    addNamedToRunTimeSelectionTable
+    (
+        phaseSystem,
+        interfaceCompositionPhaseChangeMultiphaseSystem,
+        dictionary,
+        interfaceCompositionPhaseChangeMultiphaseSystem
+    );
+```
+
+* `InterfaceCompositionPhaseChangePhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\InterfaceCompositionPhaseChangePhaseSystem\InterfaceCompositionPhaseChangePhaseSystem.H`, is the class to provide **interfacial heat and mass transfer** between a number of phases according to a interface composition model. The interface temperature is calculated such that the net rate at which the heat is transferred to the interface is equal to the latent heat consumed by the mass transfer.
+* `TwoResistanceHeatTransferPhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\TwoResistanceHeatTransferPhaseSystem\TwoResistanceHeatTransferPhaseSystem.H`, is the class which models interfacial heat transfer between a number of phases. **Two heat transfer models are stored at each interface, one for each phase.** This permits definition of an interface temperature with which heat transfer occurs. It also allows derived systems to define other thermodynamic properties at the interface and therefore represent **phase changes**.
+
+define the type of `interfaceCompositionPhaseChangeMultiphaseSystem` and add it to run time selection table. This can deal with phase change problems.
+
+Tutorials:
+
+* `Laminar/bubbleColumnEvaporating`
+* `Laminar/bubbleColumnEvaporatingDissolving`
+* `RAS/bubbleColumnEvaporatingReacting`
+
+##### thermalPhaseChangeMultiphaseSystem
+
+```cpp
+    typedef
+        ThermalPhaseChangePhaseSystem
+        <
+            PhaseTransferPhaseSystem
+            <
+                TwoResistanceHeatTransferPhaseSystem
+                <
+                    MomentumTransferPhaseSystem<phaseSystem>
+                >
+            >
+        >
+        thermalPhaseChangeMultiphaseSystem;
+
+    addNamedToRunTimeSelectionTable
+    (
+        phaseSystem,
+        thermalPhaseChangeMultiphaseSystem,
+        dictionary,
+        thermalPhaseChangeMultiphaseSystem
+    );
+```
+
+* `ThermalPhaseChangePhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\ThermalPhaseChangePhaseSystem\ThermalPhaseChangePhaseSystem.H`, is the class to provide **interfacial heat and mass transfer** between a number of phases according the interfacial temperature approximated by **the saturation temperature**.
+
+Based on the implemnetaion described in:
+
+    \verbatim
+        Peltola, J., Pättikangas, T., Bainbridge, W., Lehnigk, R., Schlegel, F. (2019). On Development and validation of subcooled nucleate boiling models for OpenFOAM Foundation Release. NURETH-18 Conference Proceedings, Portland, Oregon, United States, 2019.
+    \endverbatim
+
+The present implementation includes simplified support for **non-volatile
+components** in addition to a single volatile component in order to account compressibility effects when non-volatile gas bubbles of non-volatile gas filled pressure reservoirs are present.
+
+The phase change mass transfer calculation is still only dependent on the interfacial temperature estimate and interfacial heat transfer models. The mass diffusion effects in presence of non-volatile components at the interface are neglected.
+
+define the type of `thermalPhaseChangeMultiphaseSystem` and add it to run time selection table.
+
+The difference between `thermalPhaseChangeMultiphaseSystem` and `interfaceCompositionPhaseChangeMultiphaseSystem` is that the former uses `ThermalPhaseChangePhaseSystem` while the latter uses `InterfaceCompositionPhaseChangePhaseSystem`.
+
+Tutorials:
+
+* `Laminar/steamInjection`
+* `RAS/wallBoiling`
+* `RAS/wallBoilingIATE`
+
+##### populationBalanceMultiphaseSystem
+
+```cpp
+    typedef
+        PopulationBalancePhaseSystem
+        <
+            PhaseTransferPhaseSystem
+            <
+                OneResistanceHeatTransferPhaseSystem
+                <
+                    MomentumTransferPhaseSystem<phaseSystem>
+                >
+            >
+        >
+        populationBalanceMultiphaseSystem;
+
+    addNamedToRunTimeSelectionTable
+    (
+        phaseSystem,
+        populationBalanceMultiphaseSystem,
+        dictionary,
+        populationBalanceMultiphaseSystem
+    );
+```
+
+* `PopulationBalancePhaseSystem` in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\PhaseSystems\PopulationBalancePhaseSystem\PopulationBalancePhaseSystem.H`, is the class which provides population balance functionality.
+
+define the type of `populationBalanceMultiphaseSystem` and add it to run time selection table.
+
+Tutorials:
+
+* `Laminar/bubbleColumnPolydisperse`
+* `Laminar/titaniaSynthesis`
+* `Laminar/titaniaSynthesisSurface`
+* `RAS/bubbleColumnPolydisperse`
+
+##### thermalPhaseChangePopulationBalanceMultiphaseSystem
+
+```cpp
+    typedef
+        ThermalPhaseChangePhaseSystem
+        <
+            PopulationBalancePhaseSystem
+            <
+                PhaseTransferPhaseSystem
+                <
+                    TwoResistanceHeatTransferPhaseSystem
+                    <
+                        MomentumTransferPhaseSystem<phaseSystem>
+                    >
+                >
+            >
+        >
+        thermalPhaseChangePopulationBalanceMultiphaseSystem;
+
+    addNamedToRunTimeSelectionTable
+    (
+        phaseSystem,
+        thermalPhaseChangePopulationBalanceMultiphaseSystem,
+        dictionary,
+        thermalPhaseChangePopulationBalanceMultiphaseSystem
+    );
+```
+
+define the type of `thermalPhaseChangePopulationBalanceMultiphaseSystem` and add it to run time selection table.
+
+Tutorials:
+
+* `RAS/wallBoilingPolydisperse`
+* `RAS/wallBoilingPolydisperseTwoGroups`
+
+| phase type | PhaseTransferPhaseSystem | OneResistanceHeatTransferPhaseSystem | TwoResistanceHeatTransferPhaseSystem | MomentumTransferPhaseSystem | InterfaceCompositionPhaseChangePhaseSystem | ThermalPhaseChangePhaseSystem | PopulationBalancePhaseSystem | function |
+| - | - | - | - | - | - | - | - | - |
+| basicMultiphaseSystem | yes | yes |  | yes |  |  |  |  |
+| interfaceCompositionPhaseChangeMultiphaseSystem | yes |  | yes | yes | yes |  |  |  |
+| thermalPhaseChangeMultiphaseSystem | yes |  | yes | yes |  | yes |  |  |
+| populationBalanceMultiphaseSystem | yes | yes |  | yes |  |  | yes |  |
+| thermalPhaseChangePopulationBalanceMultiphaseSystem | yes |  | yes | yes |  | yes | yes |  |
+
+
+
 
 
 
