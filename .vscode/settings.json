@@ -65,6 +65,8 @@
         "multiphaseCompressibleMomentumTransportModels.C": "cpp",
         "aspectRatioModelNew.C": "cpp",
         "aspectRatioModel.C": "cpp",
-        "constantAspectRatio.C": "cpp"
+        "constantAspectRatio.C": "cpp",
+        "PhaseCompressibleMomentumTransportModel.C": "cpp",
+        "BlendedInterfacialModel.C": "cpp"
     }
 }

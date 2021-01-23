@@ -7,6 +7,7 @@
       - [phaseSystemI.H](#phasesystemih)
       - [phaseSystemNew.C](#phasesystemnewc)
       - [phaseSystemTemplates.C](#phasesystemtemplatesc)
+        - [addfield 1](#addfield-1)
       - [phaseSystem.C](#phasesystemc)
         - [calcPhi](#calcphi)
         - [generatePairs](#generatepairs)
@@ -47,6 +48,11 @@
           - [Source](#source)
           - [Controls](#controls)
           - [Solving loop](#solving-loop)
+    - [phaseSystems](#phasesystems-1)
+      - [MomentumTransferPhaseSystem](#momentumtransferphasesystem)
+        - [MomentumTransferPhaseSystem.H](#momentumtransferphasesystemh)
+        - [MomentumTransferPhaseSystem.C](#momentumtransferphasesystemc)
+          - [DByAfs](#dbyafs)
     - [phaseModel](#phasemodel)
       - [Summary](#summary)
       - [phaseModel](#phasemodel-1)
@@ -270,6 +276,47 @@ define some member functions:
 define some inline function
 
 * addField()
+
+##### addfield 1
+
+```cpp
+template<class GeoField, class Group>
+inline void addField
+(
+    const Group& group,
+    const word& name,
+    tmp<GeoField> field,
+    PtrList<GeoField>& fieldList
+)
+{
+    if (fieldList.set(group.index()))
+    {
+        fieldList[group.index()] += field;
+    }
+    else
+    {
+        fieldList.set
+        (
+            group.index(),
+            new GeoField
+            (
+                IOobject::groupName(name, group.name()),
+                field
+            )
+        );
+    }
+}
+```
+
+* if `group` already exists in `fieldList`, then
+  * `fieldList[group.index()] += field`
+* else, create `group` in `fieldList`
+  * with `name`, and `field`
+
+* the first parameter `group` is to provide index of the new field
+* the second parameter `name` is to provide the name of the new field
+* the third parameter `field` is to provide the field of the new field
+* the fouth parameter `fieldList` is to provide the list where the new field is added to
 
 #### phaseSystem.C
 
@@ -2129,8 +2176,272 @@ solve
             }
 ```
 
-* 
 
+
+### phaseSystems
+
+#### MomentumTransferPhaseSystem
+
+##### MomentumTransferPhaseSystem.H
+
+Class which models interfacial momentum transfer between a number of phases. Drag, virtual mass, lift, wall lubrication and turbulent dispersion are all modelled. The explicit contribution from the drag is omitted from the transfer matrices, as this forms part of the solution of the pressure equation.
+
+##### MomentumTransferPhaseSystem.C
+
+###### DByAfs
+
+```cpp
+template<class BasePhaseSystem>
+Foam::PtrList<Foam::surfaceScalarField>
+Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::DByAfs
+(
+    const PtrList<volScalarField>& rAUs,
+    const PtrList<surfaceScalarField>& rAUfs
+) const
+{
+    ...
+}
+```
+
+definition of `DByAfs`
+
+```cpp
+    PtrList<surfaceScalarField> DByAfs(this->phaseModels_.size());
+
+    if (rAUfs.size())
+    {
+        ...
+    }
+```
+
+* define the list of `DByAfs`
+* if `rAUfs` exist, start the calculation
+
+**Add the phase pressure**
+
+```cpp
+        // Add the phase pressure
+        forAll(this->phaseModels_, phasei)
+        {
+            const phaseModel& phase = this->phaseModels_[phasei];
+
+            const surfaceScalarField pPrimeByAf
+            (
+                rAUfs[phasei]*fvc::interpolate(phase.pPrime())
+            );
+
+            addField(phase, "DByAf", pPrimeByAf, DByAfs);
+
+            forAll(this->phaseModels_, phasej)
+            {
+                if (phasej != phasei)
+                {
+                    const phaseModel& phase2 = this->phaseModels_[phasej];
+
+                    addField
+                    (
+                        phase2,
+                        "DByAf",
+                        fvc::interpolate
+                        (
+                            phase2
+                           /max(1 - phase, phase2.residualAlpha())
+                        )*pPrimeByAf,
+                        DByAfs
+                    );
+                }
+            }
+        }
+```
+
+Add the phase pressure:
+* for every phase
+  * get current `phase`, or $\alpha^k$
+  * define `pPrimeByAf` as
+    * $$pPrimeByAf^k = rAUf^k \left(\frac{\partial p^k}{\partial \alpha^k}\right)_f = \|\sum_{l=1}^N \alpha_f^l (\frac{\alpha}{A_p})^l_f\| \left(\frac{\partial p^k}{\partial \alpha^k}\right)_f$$
+  * add `DByAf` to field, and `DByAf` is initialized as `pPrimeByAf`
+    * $$DByAf^k = pPrimeByAf^k = \|\sum_{l=1}^N \alpha_f^l (\frac{\alpha}{A_p})^l_f\| \left(\frac{\partial p^k}{\partial \alpha^k}\right)_f$$
+  * for every phasej
+    * if `phasej` is not current `phase`
+      * get `phase2` or $\alpha^l$
+      * addField to or create `DByAf`, namely
+        * $$DbyAf^k = pPrimeByAf^k + \sum_{l = 1, l \neq k}^N \left[\frac{\alpha^l}{\max(1-\alpha^k, residualAlpha()^l)}\right]_f \cdot pPrimeByAf^k$$
+
+`pPrime()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MovingPhaseModel\MovingPhaseModel.C` is to return the phase-pressure' (derivative of phase-pressure w.r.t. phase-fraction), namely,
+
+$$
+pPrime() = \frac{\partial p^k}{\partial \alpha^k}
+$$
+
+**Add the turbulent dispersion**
+
+```cpp
+        // Add the turbulent dispersion
+        forAllConstIter
+        (
+            turbulentDispersionModelTable,
+            turbulentDispersionModels_,
+            turbulentDispersionModelIter
+        )
+        {
+            const phasePair&
+                pair(this->phasePairs_[turbulentDispersionModelIter.key()]);
+
+            const surfaceScalarField Df
+            (
+                fvc::interpolate(turbulentDispersionModelIter()->D())
+            );
+
+            const surfaceScalarField alpha12f
+            (
+                fvc::interpolate(pair.phase1() + pair.phase2())
+            );
+
+            addField
+            (
+                pair.phase1(),
+                "DByAf",
+                rAUfs[pair.phase1().index()]*Df
+               /max(alpha12f, pair.phase1().residualAlpha()),
+                DByAfs
+            );
+            addField
+            (
+                pair.phase2(),
+                "DByAf",
+                rAUfs[pair.phase2().index()]*Df
+               /max(alpha12f, pair.phase2().residualAlpha()),
+                DByAfs
+            );
+        }
+```
+
+Add the turbulent dispersion
+
+for every turbulent dispersion needs to be added
+  * set `pair`
+  * get turbulent diffusivity `D` at surface
+    * $$Df = (D)_f$$
+  * get the sum of phase fraction of phase 1 and phase 2
+    * $$alpah12f^m = (\alpha_1^m + \alpha_2^m)_f$$
+  * add `phase1` field to `DByAf`
+    * $$DByAf^k = DByAf^k + \sum_{m}^M \frac{rAUf^m_1 (D)_f}{\max(alpha12f^m, residualAlpha()^m_1)}$$
+  * add `phase2` field to `DByAf`
+    * $$DByAf^k = DByAf^k + \sum_{m}^M \frac{rAUf^m_2 (D)_f}{\max(alpha12f^m, residualAlpha()^m_2)}$$
+  * namely, 
+  * $$DByAf^k = DByAf^k + \sum_{m}^M \frac{rAUf^m_1 (D)_f}{\max(alpha12f^m, residualAlpha()^m_1)} + \sum_{m}^M \frac{rAUf^m_2 (D)_f}{\max(alpha12f^m, residualAlpha()^m_2)}$$
+    * where $M$ is the number of pairs of turbulent dispersion
+
+```cpp
+    else
+    {
+        ...
+    }
+```
+
+else, `rAUfs` does not exist, then
+
+**Add the phase pressure**
+
+```cpp
+        // Add the phase pressure
+        forAll(this->phaseModels_, phasei)
+        {
+            const phaseModel& phase = this->phaseModels_[phasei];
+
+            const surfaceScalarField pPrimeByAf
+            (
+                fvc::interpolate(rAUs[phasei]*phase.pPrime())
+            );
+
+            addField(phase, "DByAf", pPrimeByAf, DByAfs);
+
+            forAll(this->phaseModels_, phasej)
+            {
+                if (phasej != phasei)
+                {
+                    const phaseModel& phase2 = this->phaseModels_[phasej];
+
+                    addField
+                    (
+                        phase2,
+                        "DByAf",
+                        fvc::interpolate
+                        (
+                            phase2
+                           /max(1 - phase, phase2.residualAlpha())
+                        )*pPrimeByAf,
+                        DByAfs
+                    );
+                }
+            }
+        }
+```
+
+the difference between this and above is that, since `rAUfs` is not deifne here, in deifinition of `pPrimeByAf`, `rAUs` is also interpolated to obtain the on surface values
+
+* $$pPrimeByAf = \left(rAU^k \frac{\partial p^k}{\partial \alpha^k} \right)_f$$
+
+others are all same
+
+**Add the turbulent dispersion**
+
+```cpp
+        // Add the turbulent dispersion
+        forAllConstIter
+        (
+            turbulentDispersionModelTable,
+            turbulentDispersionModels_,
+            turbulentDispersionModelIter
+        )
+        {
+            const phasePair&
+                pair(this->phasePairs_[turbulentDispersionModelIter.key()]);
+
+            const volScalarField D(turbulentDispersionModelIter()->D());
+
+            const volScalarField alpha12(pair.phase1() + pair.phase2());
+
+            addField
+            (
+                pair.phase1(),
+                "DByAf",
+                fvc::interpolate
+                (
+                    rAUs[pair.phase1().index()]*D
+                   /max(alpha12, pair.phase1().residualAlpha())
+                ),
+                DByAfs
+            );
+            addField
+            (
+                pair.phase2(),
+                "DByAf",
+                fvc::interpolate
+                (
+                    rAUs[pair.phase2().index()]*D
+                   /max(alpha12, pair.phase2().residualAlpha())
+                ),
+                DByAfs
+            );
+        }
+```
+
+similarly, interpolation is performed in addition to `DByAf`, like
+
+* $$ \left(\frac{rAU^m_1 D}{\max(alpha12^m, residualAlpha()^m_1)}\right)_f $$
+
+**return**
+
+```cpp
+    return DByAfs;
+```
+
+finally return `DByAfs`
+
+
+
+            
 ### phaseModel
 
 #### Summary
