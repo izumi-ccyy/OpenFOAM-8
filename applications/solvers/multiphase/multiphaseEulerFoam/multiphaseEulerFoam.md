@@ -58,6 +58,7 @@
       - [phaseModel](#phasemodel-1)
         - [phaseModel.H](#phasemodelh)
         - [phaseModel.C](#phasemodelc)
+          - [constructor](#constructor)
         - [phaseModelNew.C](#phasemodelnewc)
         - [phaseModels.C](#phasemodelsc)
           - [purePhaseModel](#purephasemodel)
@@ -2474,6 +2475,69 @@ finally return `DByAfs`
 ##### phaseModel.H
 
 ##### phaseModel.C
+
+###### constructor
+
+```cpp
+Foam::phaseModel::phaseModel
+(
+    const phaseSystem& fluid,
+    const word& phaseName,
+    const bool referencePhase,
+    const label index
+)
+:
+    // initialize
+    // initialize parent class volScalarField, with alpha
+    volScalarField
+    (
+        referencePhase
+      ? volScalarField
+        (
+            IOobject
+            (
+                IOobject::groupName("alpha", phaseName),
+                fluid.mesh().time().timeName(),
+                fluid.mesh(),
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE
+            ),
+            fluid.mesh(),
+            dimensionedScalar(dimless, 0)
+        )
+      : volScalarField
+        (
+            IOobject
+            (
+                IOobject::groupName("alpha", phaseName),
+                fluid.mesh().time().timeName(),
+                fluid.mesh(),
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            fluid.mesh()
+        )
+    ),
+
+    // initialize private data
+    fluid_(fluid),
+    name_(phaseName),
+    index_(index),
+    residualAlpha_
+    (
+        "residualAlpha",
+        dimless,
+        fluid.subDict(phaseName).lookup("residualAlpha")
+    ),
+    alphaMax_(fluid.subDict(phaseName).lookupOrDefault("alphaMax", 1.0))
+{
+    diameterModel_ = diameterModel::New(fluid.subDict(phaseName), *this);
+}
+```
+
+initialize parent class and private data.
+
+it should be noted that there is only one definition in class `phaseSystem` owns the type of `volScalarField`, which is alos the parent class.
 
 ##### phaseModelNew.C
 

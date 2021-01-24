@@ -3,7 +3,7 @@
 <node TEXT="multiphaseEulerFoam" FOLDED="false" ID="ID_919720003" CREATED="1611342930810" MODIFIED="1611342944105" STYLE="oval">
 <font SIZE="18"/>
 <hook NAME="MapStyle">
-    <properties edgeColorConfiguration="#808080ff,#ff0000ff,#0000ffff,#00ff00ff,#ff00ffff,#00ffffff,#7c0000ff,#00007cff,#007c00ff,#7c007cff,#007c7cff,#7c7c00ff" fit_to_viewport="false"/>
+    <properties fit_to_viewport="false" edgeColorConfiguration="#808080ff,#ff0000ff,#0000ffff,#00ff00ff,#ff00ffff,#00ffffff,#7c0000ff,#00007cff,#007c00ff,#7c007cff,#007c7cff,#7c7c00ff"/>
 
 <map_styles>
 <stylenode LOCALIZED_TEXT="styles.root_node" STYLE="oval" UNIFORM_SHAPE="true" VGAP_QUANTITY="24.0 pt">
@@ -79,7 +79,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="phaseMap" ID="ID_244770064" CREATED="1611343190743" MODIFIED="1611343378017"><richcontent TYPE="DETAILS">
@@ -94,7 +93,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="sizeDistribution" ID="ID_1931314155" CREATED="1611343194887" MODIFIED="1611343448165"><richcontent TYPE="DETAILS">
@@ -109,7 +107,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 </node>
@@ -138,7 +135,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="Frossling.C" ID="ID_1904995240" CREATED="1611343739086" MODIFIED="1611343746425"/>
 <node TEXT="Frossling.H" ID="ID_343405915" CREATED="1611343747008" MODIFIED="1611343750496"/>
@@ -155,7 +151,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="sphericalDiffusiveMassTransfer.C" ID="ID_1325168856" CREATED="1611343805007" MODIFIED="1611343808088"/>
 <node TEXT="sphericalDiffusiveMassTransfer.H" ID="ID_851067668" CREATED="1611343808376" MODIFIED="1611343815453"/>
@@ -174,7 +169,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="Henry" ID="ID_434898189" CREATED="1611343880828" MODIFIED="1611344059322"><richcontent TYPE="DETAILS">
@@ -189,7 +183,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="nonRandomTwoLiquid" ID="ID_1939509718" CREATED="1611343924895" MODIFIED="1611344093873"><richcontent TYPE="DETAILS">
@@ -204,7 +197,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="Raoult" ID="ID_1113899952" CREATED="1611343935384" MODIFIED="1611344145570"><richcontent TYPE="DETAILS">
@@ -219,7 +211,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="saturated" ID="ID_1214325357" CREATED="1611343941962" MODIFIED="1611344167909"><richcontent TYPE="DETAILS">
@@ -234,7 +225,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 </node>
@@ -262,7 +252,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="constantSurfaceTensionCoefficient.C" ID="ID_506410159" CREATED="1611344355674" MODIFIED="1611344373298"/>
 <node TEXT="constantSurfaceTensionCoefficient.H" ID="ID_1822917556" CREATED="1611344373654" MODIFIED="1611344378962"/>
@@ -428,7 +417,7 @@
 <node TEXT="viscosityModel" ID="ID_623669797" CREATED="1611350505035" MODIFIED="1611350512018"/>
 </node>
 <node TEXT="Make" ID="ID_1667009981" CREATED="1611350303386" MODIFIED="1611350309272"/>
-<node TEXT="phasePressureModel" FOLDED="true" ID="ID_834643236" CREATED="1611350310261" MODIFIED="1611350422044"><richcontent TYPE="DETAILS">
+<node TEXT="phasePressureModel" ID="ID_834643236" CREATED="1611350310261" MODIFIED="1611350422044"><richcontent TYPE="DETAILS">
 
 <html>
   <head>
@@ -440,7 +429,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="phasePressureModel.C" ID="ID_574978509" CREATED="1611350310261" MODIFIED="1611350398294"/>
 <node TEXT="phasePressureModel.H" ID="ID_1654073359" CREATED="1611350399504" MODIFIED="1611350403795"/>
@@ -464,8 +452,20 @@
     </p>
   </body>
 </html>
-
 </richcontent>
+<node TEXT="" ID="ID_1307838934" CREATED="1611496165360" MODIFIED="1611496165361">
+<hook NAME="FirstGroupNode"/>
+</node>
+<node TEXT="basicMultiphaseSystem" ID="ID_239839000" CREATED="1611496104166" MODIFIED="1611496107069"/>
+<node TEXT="interfaceCompositionPhaseChangeMultiphaseSystem" ID="ID_601306900" CREATED="1611496107799" MODIFIED="1611496117969"/>
+<node TEXT="thermalPhaseChangeMultiphaseSystem" ID="ID_1583655936" CREATED="1611496118162" MODIFIED="1611496127341"/>
+<node TEXT="populationBalanceMultiphaseSystem" ID="ID_1134097609" CREATED="1611496127494" MODIFIED="1611496138301"/>
+<node TEXT="thermalPhaseChangePopulationBalanceMultiphaseSystem" ID="ID_333750563" CREATED="1611496138483" MODIFIED="1611496147109"/>
+<node TEXT="" ID="ID_258108567" CREATED="1611496165360" MODIFIED="1611496165360">
+<hook NAME="SummaryNode"/>
+<hook NAME="AlwaysUnfoldedNode"/>
+<node TEXT="phase system type" ID="ID_1169652831" CREATED="1611496165361" MODIFIED="1611496174959"/>
+</node>
 </node>
 </node>
 <node TEXT="pU" ID="ID_1679000118" CREATED="1611346141697" MODIFIED="1611346144475">
@@ -506,7 +506,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="BlendedInterfacialModel" ID="ID_466453374" CREATED="1611344439780" MODIFIED="1611344447066">
@@ -532,7 +531,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="constantDiameter" ID="ID_1928728533" CREATED="1611344671520" MODIFIED="1611344770169"><richcontent TYPE="DETAILS">
@@ -547,7 +545,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="IATE" ID="ID_1895048466" CREATED="1611344678840" MODIFIED="1611344777510"><richcontent TYPE="DETAILS">
@@ -562,7 +559,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="IATEsources" ID="ID_174202464" CREATED="1611344780187" MODIFIED="1611344790114"/>
 <node TEXT="IATE.C" ID="ID_1891162915" CREATED="1611344790528" MODIFIED="1611344794471"/>
@@ -580,7 +576,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="linearTsubDiameter" ID="ID_271064027" CREATED="1611344695004" MODIFIED="1611344859054"><richcontent TYPE="DETAILS">
@@ -595,7 +590,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="sphericalDiameter" ID="ID_1976392181" CREATED="1611344710216" MODIFIED="1611344897941"><richcontent TYPE="DETAILS">
@@ -610,7 +604,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="velocityGroup" ID="ID_1237919516" CREATED="1611344719084" MODIFIED="1611344955070"><richcontent TYPE="DETAILS">
@@ -625,7 +618,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 <node TEXT="sizeGroup" ID="ID_680100964" CREATED="1611344901184" MODIFIED="1611344904742"/>
 <node TEXT="velocityGroup.C" ID="ID_520423924" CREATED="1611344907068" MODIFIED="1611344912118"/>
@@ -635,16 +627,55 @@
 </node>
 <node TEXT="Make" ID="ID_36795805" CREATED="1611344456514" MODIFIED="1611344457598"/>
 <node TEXT="phaseModel" ID="ID_365125857" CREATED="1611344458506" MODIFIED="1611344461755">
-<node TEXT="phaseModel" ID="ID_1926269986" CREATED="1611345180638" MODIFIED="1611345185847"/>
-<node TEXT="AnisothermalPhaseModel" ID="ID_1759946081" CREATED="1611345129377" MODIFIED="1611345141535"/>
-<node TEXT="InertPhaseModel" ID="ID_961490484" CREATED="1611345142540" MODIFIED="1611345148067"/>
-<node TEXT="IsothermalPhaseModel" ID="ID_1107529327" CREATED="1611345152172" MODIFIED="1611345160198"/>
-<node TEXT="MovingPhaseModel" ID="ID_1407775655" CREATED="1611345160581" MODIFIED="1611345167595"/>
-<node TEXT="MultiComponentPhaseModel" ID="ID_983874362" CREATED="1611345168356" MODIFIED="1611345177003"/>
-<node TEXT="PurePhaseModel" ID="ID_1360505690" CREATED="1611345186965" MODIFIED="1611345194635"/>
-<node TEXT="ReactingPhaseModel" ID="ID_951222427" CREATED="1611345196065" MODIFIED="1611345201926"/>
-<node TEXT="StationaryPhaseModel" ID="ID_1508807484" CREATED="1611345202885" MODIFIED="1611345212134"/>
-<node TEXT="ThermoPhaseModel" ID="ID_540685803" CREATED="1611345218069" MODIFIED="1611345224502"/>
+<node TEXT="phaseModel" ID="ID_1926269986" CREATED="1611345180638" MODIFIED="1611345185847">
+<node TEXT="phaseModel.C" ID="ID_1637156495" CREATED="1611495910347" MODIFIED="1611495925474"/>
+<node TEXT="phaseModel.H" ID="ID_753211374" CREATED="1611495925783" MODIFIED="1611495928778"/>
+<node TEXT="phaseModelNew.C" ID="ID_1599244984" CREATED="1611495929058" MODIFIED="1611495933930"/>
+<node TEXT="phaseModels.C" ID="ID_1139550557" CREATED="1611495934274" MODIFIED="1611495937470">
+<node TEXT="" ID="ID_879428595" CREATED="1611496026825" MODIFIED="1611496026826">
+<hook NAME="FirstGroupNode"/>
+</node>
+<node TEXT="purePhaseModel" ID="ID_1919549747" CREATED="1611495938522" MODIFIED="1611495953898"/>
+<node TEXT="pureStationaryPhaseModel" ID="ID_1601720003" CREATED="1611495954218" MODIFIED="1611495964330"/>
+<node TEXT="pureIsothermalPhaseModel" ID="ID_1274954139" CREATED="1611495964507" MODIFIED="1611495978854"/>
+<node TEXT="pureStationaryIsothermalPhaseModel" ID="ID_1906190258" CREATED="1611495979150" MODIFIED="1611495988077"/>
+<node TEXT="multiComponentPhaseModel" ID="ID_80649445" CREATED="1611495988311" MODIFIED="1611495997569"/>
+<node TEXT="multiComponentIsothermalPhaseModel" ID="ID_1886566484" CREATED="1611495997787" MODIFIED="1611496008057"/>
+<node TEXT="reactingPhaseModel" ID="ID_945696724" CREATED="1611496008298" MODIFIED="1611496016831"/>
+<node TEXT="" ID="ID_1065592666" CREATED="1611496026823" MODIFIED="1611496026825">
+<hook NAME="SummaryNode"/>
+<hook NAME="AlwaysUnfoldedNode"/>
+<node TEXT="phase type" ID="ID_897713142" CREATED="1611496026826" MODIFIED="1611496032751"/>
+</node>
+</node>
+</node>
+<node TEXT="AnisothermalPhaseModel" ID="ID_1759946081" CREATED="1611345129377" MODIFIED="1611345141535">
+<node TEXT="Class which represents a phase for which the temperature (strictly energy) varies. Returns the energy equation and corrects the thermodynamic model." ID="ID_1239160032" CREATED="1611481196699" MODIFIED="1611481206343"/>
+</node>
+<node TEXT="InertPhaseModel" ID="ID_961490484" CREATED="1611345142540" MODIFIED="1611345148067">
+<node TEXT="Class which represents an inert phase, with no reactions. Returns zero reaction rate and heat." ID="ID_1499292725" CREATED="1611481292605" MODIFIED="1611481295039"/>
+</node>
+<node TEXT="IsothermalPhaseModel" ID="ID_1107529327" CREATED="1611345152172" MODIFIED="1611345160198">
+<node TEXT="Class which represents a phase for which the temperature (strictly energy) remains constant. Returns an empty energy equation and does nothing when correctThermo is called." ID="ID_898502751" CREATED="1611481303416" MODIFIED="1611481306239"/>
+</node>
+<node TEXT="MovingPhaseModel" ID="ID_1407775655" CREATED="1611345160581" MODIFIED="1611345167595">
+<node TEXT="Class which represents a moving fluid phase. Holds the velocity, fluxes and turbulence model and can generate the momentum equation. The interface is quite restrictive as it also has to support an equivalent stationary model, which does not store motion fields or a turbulence model. Possible future extensions include separating the turbulent functionality into another layer." ID="ID_1022205454" CREATED="1611481320413" MODIFIED="1611481321919"/>
+</node>
+<node TEXT="MultiComponentPhaseModel" ID="ID_983874362" CREATED="1611345168356" MODIFIED="1611345177003">
+<node TEXT="Class which represents a phase with multiple species. Returns the species&apos; mass fractions, and their governing equations." ID="ID_1006430023" CREATED="1611481324737" MODIFIED="1611481343117"/>
+</node>
+<node TEXT="PurePhaseModel" ID="ID_1360505690" CREATED="1611345186965" MODIFIED="1611345194635">
+<node TEXT="Class which represents pure phases, i.e. without any species. Returns an empty list of mass fractions." ID="ID_161831015" CREATED="1611481344221" MODIFIED="1611481345747"/>
+</node>
+<node TEXT="ReactingPhaseModel" ID="ID_951222427" CREATED="1611345196065" MODIFIED="1611345201926">
+<node TEXT="Class which represents phases with volumetric reactions. Returns the reaction rate and heat." ID="ID_1932404609" CREATED="1611481353349" MODIFIED="1611481364013"/>
+</node>
+<node TEXT="StationaryPhaseModel" ID="ID_1508807484" CREATED="1611345202885" MODIFIED="1611345212134">
+<node TEXT="Class which represents a stationary (and therefore probably solid) phase. Generates, but does not store, zero velocity and flux field and turbulent quantities. Throws an error when non-const access is requested to the motion fields or when the momentum equation is requested. Usage must must protect against such calls." ID="ID_1296676855" CREATED="1611481364884" MODIFIED="1611481366510"/>
+</node>
+<node TEXT="ThermoPhaseModel" ID="ID_540685803" CREATED="1611345218069" MODIFIED="1611345224502">
+<node TEXT="Class which represents a phase with a thermodynamic model. Provides access to the thermodynamic variables. Note that the thermo model itself is not returned as this class could be substituted in the hierarchy for one which mirrors the functionality, but does not include a thermo model; an incompressible phase model, for example." ID="ID_227577903" CREATED="1611481374937" MODIFIED="1611481379588"/>
+</node>
 </node>
 <node TEXT="phasePair" ID="ID_1043750722" CREATED="1611344462867" MODIFIED="1611344465512">
 <node TEXT="orderedPhasePair" ID="ID_1418594899" CREATED="1611345242549" MODIFIED="1611345248959"/>
@@ -681,7 +712,6 @@
     </p>
   </body>
 </html>
-
 </richcontent>
 </node>
 <node TEXT="binaryBreakupModels" ID="ID_1496833591" CREATED="1611345523554" MODIFIED="1611345544280"/>

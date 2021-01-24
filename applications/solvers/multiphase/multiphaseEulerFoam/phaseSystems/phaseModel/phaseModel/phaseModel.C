@@ -46,6 +46,8 @@ Foam::phaseModel::phaseModel
     const label index
 )
 :
+    // initialize
+    // initialize parent class volScalarField, with alpha
     volScalarField
     (
         referencePhase
@@ -76,6 +78,7 @@ Foam::phaseModel::phaseModel
         )
     ),
 
+    // initialize private data
     fluid_(fluid),
     name_(phaseName),
     index_(index),
