@@ -56,8 +56,20 @@
     - [phaseModel](#phasemodel)
       - [Summary](#summary)
       - [phaseModel](#phasemodel-1)
-        - [phaseModel.C](#phasemodelc)
         - [phaseModel.H](#phasemodelh)
+        - [phaseModel.C](#phasemodelc)
+        - [phaseModelNew.C](#phasemodelnewc)
+        - [phaseModels.C](#phasemodelsc)
+          - [purePhaseModel](#purephasemodel)
+          - [pureStationaryPhaseModel](#purestationaryphasemodel)
+          - [pureIsothermalPhaseModel](#pureisothermalphasemodel)
+          - [pureStationaryIsothermalPhaseModel](#purestationaryisothermalphasemodel)
+          - [multiComponentPhaseModel](#multicomponentphasemodel)
+          - [multiComponentIsothermalPhaseModel](#multicomponentisothermalphasemodel)
+          - [reactingPhaseModel](#reactingphasemodel)
+      - [phaseModel](#phasemodel-2)
+        - [phaseModel.C](#phasemodelc-1)
+        - [phaseModel.H](#phasemodelh-1)
       - [AnisothermalPhaseModel](#anisothermalphasemodel)
         - [AnisothermalPhaseModel.C](#anisothermalphasemodelc)
         - [AnisothermalPhaseModel.H](#anisothermalphasemodelh)
@@ -70,13 +82,13 @@
       - [MovingPhaseModel](#movingphasemodel)
         - [MovingPhaseModel.C](#movingphasemodelc)
         - [MovingPhaseModel.H](#movingphasemodelh)
-      - [MultiComponentPhaseModel](#multicomponentphasemodel)
+      - [MultiComponentPhaseModel](#multicomponentphasemodel-1)
         - [MultiComponentPhaseModel.C](#multicomponentphasemodelc)
         - [MultiComponentPhaseModel.H](#multicomponentphasemodelh)
-      - [PurePhaseModel](#purephasemodel)
+      - [PurePhaseModel](#purephasemodel-1)
         - [PurePhaseModel.C](#purephasemodelc)
         - [PurePhaseModel.H](#purephasemodelh)
-      - [ReactingPhaseModel](#reactingphasemodel)
+      - [ReactingPhaseModel](#reactingphasemodel-1)
         - [ReactingPhaseModel.C](#reactingphasemodelc)
         - [ReactingPhaseModel.H](#reactingphasemodelh)
       - [StationaryPhaseModel](#stationaryphasemodel)
@@ -2446,7 +2458,7 @@ finally return `DByAfs`
 
 #### Summary
 
-* phaseModel
+* phaseModel: typedef phase models, details below
 * AnisothermalPhaseModel: Class which represents a phase for which the **temperature (strictly energy) varies**. Returns the energy equation and corrects the thermodynamic model.
 * InertPhaseModel: Class which represents an **inert phase, with no reactions**. Returns zero reaction rate and heat.
 * IsothermalPhaseModel: Class which represents a phase for which the **temperature (strictly energy) remains constant**. Returns an empty energy equation and does nothing when correctThermo is called.
@@ -2456,6 +2468,215 @@ finally return `DByAfs`
 * ReactingPhaseModel: Class which represents **phases with volumetric reactions**. Returns the reaction rate and heat.
 * StationaryPhaseModel: Class which represents **a stationary (and therefore probably solid) phase**. Generates, but does not store, zero velocity and flux field and turbulent quantities. Throws an error when non-const access is requested to the motion fields or when the momentum equation is requested. Usage must must protect against such calls.
 * ThermoPhaseModel: Class which represents **a phase with a thermodynamic model**. Provides access to the thermodynamic variables. Note that the thermo model itself is not returned as this class could be substituted in the hierarchy for one which mirrors the functionality, but does not include a thermo model; an incompressible phase model, for example.
+
+#### phaseModel
+
+##### phaseModel.H
+
+##### phaseModel.C
+
+##### phaseModelNew.C
+
+##### phaseModels.C
+
+###### purePhaseModel
+
+```cpp
+    typedef
+        AnisothermalPhaseModel
+        <
+            PurePhaseModel
+            <
+                InertPhaseModel
+                <
+                    MovingPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoThermo>
+                    >
+                >
+            >
+        >
+        purePhaseModel;
+```
+
+purePhaseModel:
+
+* temperature changes
+* pure specie
+* no reaction
+* **moving**
+* thermodynamic model
+
+###### pureStationaryPhaseModel
+
+```cpp:
+    typedef
+        AnisothermalPhaseModel
+        <
+            PurePhaseModel
+            <
+                InertPhaseModel
+                <
+                    StationaryPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoThermo>
+                    >
+                >
+            >
+        >
+        pureStationaryPhaseModel;
+```
+
+pureStationaryPhaseModel:
+
+* temperature changes
+* pure specie
+* no reaction
+* **stationary**
+* thermodynamic model
+
+###### pureIsothermalPhaseModel
+
+```cpp
+    typedef
+        IsothermalPhaseModel
+        <
+            PurePhaseModel
+            <
+                InertPhaseModel
+                <
+                    MovingPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoThermo>
+                    >
+                >
+            >
+        >
+        pureIsothermalPhaseModel;
+```
+
+pureIsothermalPhaseModel:
+
+* constant temperature
+* pure specie
+* no reaction
+* **moving**
+* thermodynamic model
+
+###### pureStationaryIsothermalPhaseModel
+
+```cpp
+    typedef
+        IsothermalPhaseModel
+        <
+            PurePhaseModel
+            <
+                InertPhaseModel
+                <
+                    StationaryPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoThermo>
+                    >
+                >
+            >
+        >
+        pureStationaryIsothermalPhaseModel;
+```
+
+pureStationaryIsothermalPhaseModel:
+
+* constant temperature
+* pure specie
+* no reaction
+* **stationary**
+* thermodynamic model
+
+###### multiComponentPhaseModel
+
+```cpp
+    typedef
+        AnisothermalPhaseModel
+        <
+            MultiComponentPhaseModel
+            <
+                InertPhaseModel
+                <
+                    MovingPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoReactionThermo>
+                    >
+                >
+            >
+        >
+        multiComponentPhaseModel;
+```
+
+multiComponentPhaseModel:
+
+* temperature changes
+* **multi-component**
+* no reaction
+* **moving**
+* thermodynamic model
+
+###### multiComponentIsothermalPhaseModel
+
+```cpp
+    typedef
+        IsothermalPhaseModel
+        <
+            MultiComponentPhaseModel
+            <
+                InertPhaseModel
+                <
+                    MovingPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoReactionThermo>
+                    >
+                >
+            >
+        >
+        multiComponentIsothermalPhaseModel;
+```
+
+multiComponentIsothermalPhaseModel:
+
+* constant temperature
+* **multi-component**
+* no reaction
+* **moving**
+* thermodynamic model
+
+###### reactingPhaseModel
+
+```cpp
+    typedef
+        AnisothermalPhaseModel
+        <
+            MultiComponentPhaseModel
+            <
+                ReactingPhaseModel
+                <
+                    MovingPhaseModel
+                    <
+                        ThermoPhaseModel<phaseModel, rhoReactionThermo>
+                    >,
+                    CombustionModel<rhoReactionThermo>
+                >
+            >
+        >
+        reactingPhaseModel;
+```
+
+reactingPhaseModel:
+
+* temperature changes
+* **multi-component**
+* **reacting**
+* **moving**
+* thermodynamic model
+* **combustion**
+
 
 
 #### phaseModel

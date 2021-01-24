@@ -67,6 +67,8 @@
         "aspectRatioModel.C": "cpp",
         "constantAspectRatio.C": "cpp",
         "PhaseCompressibleMomentumTransportModel.C": "cpp",
-        "BlendedInterfacialModel.C": "cpp"
+        "BlendedInterfacialModel.C": "cpp",
+        "phaseModels.C": "cpp",
+        "phaseModelNew.C": "cpp"
     }
 }
