@@ -69,6 +69,13 @@
         "PhaseCompressibleMomentumTransportModel.C": "cpp",
         "BlendedInterfacialModel.C": "cpp",
         "phaseModels.C": "cpp",
-        "phaseModelNew.C": "cpp"
+        "phaseModelNew.C": "cpp",
+        "velocityGroup.C": "cpp",
+        "sizeGroup.C": "cpp",
+        "ArdenBuck.C": "cpp",
+        "saturationModel.C": "cpp",
+        "ThermalPhaseChangePhaseSystem.C": "cpp",
+        "function1.C": "cpp",
+        "constantSaturationConditions.C": "cpp"
     }
 }
