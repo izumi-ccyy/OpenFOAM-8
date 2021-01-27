@@ -87,3 +87,16 @@ doc/Doxygen/DTAGS
 .vscode/settings.json
 
 .vscode/settings.json
+note/multiphaseEulerFoam/multiphaseEulerFoam.xdv
+note/multiphaseEulerFoam/multiphaseEulerFoam.xdv
+note/multiphaseEulerFoam/multiphaseEulerFoam.toc
+note/multiphaseEulerFoam/multiphaseEulerFoam.synctex.gz
+.gitignore
+note/multiphaseEulerFoam/multiphaseEulerFoam.bbl
+note/multiphaseEulerFoam/multiphaseEulerFoam.fdb_latexmk
+note/multiphaseEulerFoam/multiphaseEulerFoam.log
+note/multiphaseEulerFoam/multiphaseEulerFoam.aux
+note/multiphaseEulerFoam/multiphaseEulerFoam.blg
+note/multiphaseEulerFoam/multiphaseEulerFoam.fls
+note/multiphaseEulerFoam/multiphaseEulerFoam.synctex.gz
+note/multiphaseEulerFoam/multiphaseEulerFoam.xdv
