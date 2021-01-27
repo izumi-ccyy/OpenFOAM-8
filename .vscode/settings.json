@@ -77,6 +77,9 @@
         "ThermalPhaseChangePhaseSystem.C": "cpp",
         "function1.C": "cpp",
         "constantSaturationConditions.C": "cpp",
-        "populationBalanceModel.C": "cpp"
+        "populationBalanceModel.C": "cpp",
+        "PhaseTransferPhaseSystem.C": "cpp",
+        "multiphaseMixture.C": "cpp",
+        "multiphaseMixtureThermo.C": "cpp"
     }
 }

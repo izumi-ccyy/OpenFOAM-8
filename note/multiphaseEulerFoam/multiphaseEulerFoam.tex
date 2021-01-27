@@ -1,0 +1,120 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% University/School Laboratory Report
+% LaTeX Template
+% Version 3.1 (25/3/14)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Linux and Unix Users Group at Virginia Tech Wiki 
+% (https://vtluug.org/wiki/Example_LaTeX_chem_lab_report)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage[version=3]{mhchem} % Package for chemical equation typesetting
+\usepackage{siunitx} % Provides the \SI{}{} and \si{} command for typesetting SI units
+\usepackage{graphicx} % Required for the inclusion of images
+\usepackage{natbib} % Required to change bibliography style to APA
+\usepackage{amsmath} % Required for some math elements 
+
+\usepackage{verbatim} % to comment multiple lines
+\usepackage{geometry} % set margins
+\usepackage{minted} % code highlight
+\usepackage{xcolor} % code highlighting color
+\usepackage{hyperref} % hypertext and contents
+\usepackage{bookmark}
+%\usepackage[utf8]{inputenc}
+
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+%\geometry{a4paper,scale=0.75} % set margins to 80%
+\geometry{left=2.5cm,right=2.5cm,top=2.54cm,bottom=2.54cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    bookmarksopen=true,
+    %pdftitle={Sharelatex Example},
+}
+
+\bookmarksetup{
+  open,
+  openlevel=2,
+  numbered,
+}
+
+\renewcommand{\labelenumi}{\alph{enumi}.} % Make numbering in the enumerate environment by letter rather than number (e.g. section 6)
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+%\usepackage{times} % Uncomment to use the Times New Roman font
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+\begin{titlepage}
+    \title{
+        \horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+        \Huge{Alphat Wall Function Analysis}\\
+        \horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+        } % Title
+    
+    \author{
+        \Large{Yi \textsc{Feng}}\\
+        \href{mailto:yfeng8102@gmail.com}{yfeng8102@gmail.com}
+        } % Author name
+
+    \date{\today} % Date for the report
+\end{titlepage}
+
+
+\begin{document}
+
+\maketitle % Insert the title, author and date
+\thispagestyle{empty}
+
+\cleardoublepage
+\pagenumbering{roman}
+\pdfbookmark[section]{\contentsname}{toc}
+\tableofcontents % Insert contents
+
+% If you wish to include an abstract, uncomment the lines below
+%\cleardoublepage
+% \begin{abstract}
+% Abstract text
+% \end{abstract}
+
+\cleardoublepage
+\pagenumbering{arabic}
+
+%----------------------------------------------------------------------------------------
+%	SECTION ONE
+%----------------------------------------------------------------------------------------
+\section{Near-wall heat transfer in theory}
+
+
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+
+\bibliographystyle{apalike}
+
+\bibliography{sample}
+
+%----------------------------------------------------------------------------------------
+
+
+\end{document}
