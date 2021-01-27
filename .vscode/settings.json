@@ -76,6 +76,7 @@
         "saturationModel.C": "cpp",
         "ThermalPhaseChangePhaseSystem.C": "cpp",
         "function1.C": "cpp",
-        "constantSaturationConditions.C": "cpp"
+        "constantSaturationConditions.C": "cpp",
+        "populationBalanceModel.C": "cpp"
     }
 }
