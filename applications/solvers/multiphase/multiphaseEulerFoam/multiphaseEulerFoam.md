@@ -68,9 +68,6 @@
           - [multiComponentPhaseModel](#multicomponentphasemodel)
           - [multiComponentIsothermalPhaseModel](#multicomponentisothermalphasemodel)
           - [reactingPhaseModel](#reactingphasemodel)
-      - [phaseModel](#phasemodel-2)
-        - [phaseModel.C](#phasemodelc-1)
-        - [phaseModel.H](#phasemodelh-1)
       - [AnisothermalPhaseModel](#anisothermalphasemodel)
         - [AnisothermalPhaseModel.C](#anisothermalphasemodelc)
         - [AnisothermalPhaseModel.H](#anisothermalphasemodelh)
@@ -2740,15 +2737,6 @@ reactingPhaseModel:
 * **moving**
 * thermodynamic model
 * **combustion**
-
-
-
-#### phaseModel
-
-##### phaseModel.C
-
-##### phaseModel.H
-
 
 #### AnisothermalPhaseModel
 

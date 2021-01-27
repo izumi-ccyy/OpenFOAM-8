@@ -104,6 +104,47 @@
 %----------------------------------------------------------------------------------------
 \section{Near-wall heat transfer in theory}
 
+\subsection{UEqn}
+
+\begin{minted}[frame=leftline, bgcolor=lightgray, linenos]{cpp}
+    UEqns.set
+    (
+        phase.index(),
+        new fvVectorMatrix
+        (
+            phase.UEqn()
+            ==
+            *momentumTransfer[phase.name()]
+            + fvOptions(alpha, rho, U)
+        )
+    );    
+\end{minted}
+
+\mintinline{cpp}{phase.UEqn()} \footnote{ defined in \mint[]{cpp}{applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MovingPhaseModel\MovingPhaseModel.C}}
+
+\begin{minted}[frame=leftline, bgcolor=lightgray, linenos]{cpp}
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::UEqn()
+{
+    const volScalarField& alpha = *this;
+    const volScalarField& rho = this->thermo().rho();
+
+    return
+    (
+        fvm::ddt(alpha, rho, U_)
+      + fvm::div(alphaRhoPhi_, U_)
+      + fvm::SuSp(-this->continuityError(), U_)
+      + this->fluid().MRF().DDt(alpha*rho, U_)
+      + turbulence_->divDevTau(U_)
+    );
+}   
+\end{minted}
+
+\begin{equation}
+    \frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k \mathbf{U}^k) + SuSp(contErr, \mathbf{U}) + MRF(\alpha \rho \mathbf{U}) -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right]
+\end{equation}
+
 
 
 %----------------------------------------------------------------------------------------
