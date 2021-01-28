@@ -585,6 +585,88 @@ Foam::MovingPhaseModel<BasePhaseModel>::UEqn()
 }
 ```
 
+
+The `UEqn` is defined as
+
+$$
+\frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi \mathbf{U}^k) + SuSp(continuityError_, \mathbf{U}^k) + MRF(\alpha^k \rho^k \mathbf{U}^k) -\nabla \cdot \left[\alpha^k \rho^k \nu_{Eff}^k \left((\nabla \mathbf{U}^k+(\nabla \mathbf{U}^k)^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}^k) \mathbf{I}\right)\right]
+$$
+
+or
+
+$$
+\frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi \mathbf{U}^k) + SuSp(continuityError_, \mathbf{U}^k) + MRF(\alpha^k \rho^k \mathbf{U}^k) -\nabla \cdot \tau^k
+$$
+
+`continuityError_` is defined above as
+
+$$
+continuityError_  = \frac{\partial \alpha^k \rho^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k) - source
+$$
+
+`turbulence_->divDevTau(U_)` can be found in `D:\Documents\Git\OpenFOAM-8\src\MomentumTransportModels\momentumTransportModels\linearViscousStress\linearViscousStress.C`
+
+```cpp
+template<class BasicMomentumTransportModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::linearViscousStress<BasicMomentumTransportModel>::divDevTau
+(
+    volVectorField& U
+) const
+{
+    return
+    (
+      - fvc::div((this->alpha_*this->rho_*this->nuEff())*dev2(T(fvc::grad(U))))
+      - fvm::laplacian(this->alpha_*this->rho_*this->nuEff(), U)
+    );
+}
+```
+
+`dev2` can be found in `src\OpenFOAM\primitives\Tensor\TensorI.H`
+
+```cpp
+//- Return the deviatoric part of a tensor
+template<class Cmpt>
+inline Tensor<Cmpt> dev2(const Tensor<Cmpt>& t)
+{
+    return t - SphericalTensor<Cmpt>::twoThirdsI*tr(t);
+}
+```
+
+$$
+dev2(\mathbf{T}) = \mathbf{T} - \frac{2}{3} tr(\mathbf{T}) \mathbf{I}
+$$
+
+`T()` can be found in `D:\Documents\Git\OpenFOAM-8\src\OpenFOAM\primitives\Tensor\Tensor.H` or in `src\OpenFOAM\primitives\SphericalTensor\SphericalTensor.H`, is to return the transpose
+
+$$
+T(\mathbf{T}) = \mathbf{T}^T
+$$
+
+So
+
+$$
+T(\nabla \mathbf{U}) = (\nabla \mathbf{U})^T
+$$
+
+$$
+dev2((\nabla \mathbf{U})^T) = (\nabla \mathbf{U})^T - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}
+$$
+
+So `divDevTau` is
+
+$$
+divDevTau = -\nabla \cdot (\alpha \rho \nu_{Eff} ((\nabla \mathbf{U})^T - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I})) - \nabla \cdot (\alpha \rho \nu_{Eff} \nabla \mathbf{U}) \\= -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right]
+$$
+
+It should be noted that 
+
+$$
+\nabla \cdot \tau = \nabla \cdot (-\frac{2}{3} \mu (\nabla \cdot \mathbf{U})\mathbf{I} + 2 \mu (\frac{1}{2}(\nabla \mathbf{U} + (\nabla \mathbf{U})^T)))
+$$
+
+which is the same with `divDevTau`
+
 #### UfEqn()
 
 ```cpp
