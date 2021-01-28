@@ -21,6 +21,22 @@
     - [destructor](#destructor)
     - [member functions](#member-functions-1)
       - [correctContinuityError()](#correctcontinuityerror)
+      - [correct()](#correct-1)
+      - [correctKinematics()](#correctkinematics)
+      - [correctTurbulence()](#correctturbulence)
+      - [correctEnergyTransport()](#correctenergytransport)
+      - [stationary()](#stationary)
+      - [UEqn()](#ueqn)
+      - [UfEqn()](#ufeqn)
+      - [U(), URef(), phi(), phiRef(), alphaPhi(), alphaPhiRef(), alphaRhoPhi(), alphaRhoPhiRef()](#u-uref-phi-phiref-alphaphi-alphaphiref-alpharhophi-alpharhophiref)
+      - [DUDt()](#dudt)
+      - [DUDtf()](#dudtf)
+      - [continuityError()](#continuityerror)
+      - [K()](#k)
+      - [divU()](#divu)
+      - [divU(divU)](#divudivu)
+      - [kappaEff(), k(), pPrime()](#kappaeff-k-pprime)
+      - [divq(), divj()](#divq-divj)
   - [phaseCompressibleMomentumTransportModel.H](#phasecompressiblemomentumtransportmodelh)
     - [include](#include-2)
     - [typedef](#typedef)
@@ -465,6 +481,468 @@ $$
 continuityError_  = \frac{\partial \alpha^k \rho^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k) - source
 $$
 
+#### correct()
+
+```cpp
+template<class BasePhaseModel>
+void Foam::MovingPhaseModel<BasePhaseModel>::correct()
+{
+    BasePhaseModel::correct();
+    this->fluid().MRF().correctBoundaryVelocity(U_);
+}
+```
+
+* correct with `BasePhaseModel` and `MRF`
+
+#### correctKinematics()
+
+```cpp
+template<class BasePhaseModel>
+void Foam::MovingPhaseModel<BasePhaseModel>::correctKinematics()
+{
+    BasePhaseModel::correctKinematics();
+
+    if (DUDt_.valid())
+    {
+        DUDt_.clear();
+        DUDt();
+    }
+
+    if (DUDtf_.valid())
+    {
+        DUDtf_.clear();
+        DUDtf();
+    }
+
+    if (K_.valid())
+    {
+        K_.clear();
+        K();
+    }
+}
+```
+
+* correct with `BasePhaseModel`
+* clear existed `DUDt_`, `DUDtf` and `K_` and recalculate them
+
+#### correctTurbulence()
+
+```cpp
+template<class BasePhaseModel>
+void Foam::MovingPhaseModel<BasePhaseModel>::correctTurbulence()
+{
+    BasePhaseModel::correctTurbulence();
+
+    turbulence_->correct();
+}
+```
+
+* correct turbulence with `BasePhaseModel` and `turbulence_`
+
+#### correctEnergyTransport()
+
+```cpp
+template<class BasePhaseModel>
+void Foam::MovingPhaseModel<BasePhaseModel>::correctEnergyTransport()
+{
+    BasePhaseModel::correctEnergyTransport();
+    thermophysicalTransport_->correct();
+}
+```
+
+* correct turbulence with `BasePhaseModel` and `thermophysicalTransport_`
+
+#### stationary() 
+
+```cpp
+template<class BasePhaseModel>
+bool Foam::MovingPhaseModel<BasePhaseModel>::stationary() const
+{
+    return false;
+}
+```
+
+* return `false`, since it's moving phase
+
+#### UEqn()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::UEqn()
+{
+    const volScalarField& alpha = *this;
+    const volScalarField& rho = this->thermo().rho();
+
+    return
+    (
+        fvm::ddt(alpha, rho, U_)
+      + fvm::div(alphaRhoPhi_, U_)
+      + fvm::SuSp(-this->continuityError(), U_)
+      + this->fluid().MRF().DDt(alpha*rho, U_)
+      + turbulence_->divDevTau(U_)
+    );
+}
+```
+
+#### UfEqn()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvVectorMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::UfEqn()
+{
+    // As the "normal" U-eqn but without the ddt terms
+
+    const volScalarField& alpha = *this;
+    const volScalarField& rho = this->thermo().rho();
+
+    return
+    (
+        fvm::div(alphaRhoPhi_, U_)
+      + fvm::SuSp(fvc::ddt(*this, rho) - this->continuityError(), U_)
+      + this->fluid().MRF().DDt(alpha*rho, U_)
+      + turbulence_->divDevTau(U_)
+    );
+}
+```
+
+#### U(), URef(), phi(), phiRef(), alphaPhi(), alphaPhiRef(), alphaRhoPhi(), alphaRhoPhiRef()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volVectorField>
+Foam::MovingPhaseModel<BasePhaseModel>::U() const
+{
+    return U_;
+}
+
+
+template<class BasePhaseModel>
+Foam::volVectorField&
+Foam::MovingPhaseModel<BasePhaseModel>::URef()
+{
+    return U_;
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::surfaceScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::phi() const
+{
+    return phi_;
+}
+
+
+template<class BasePhaseModel>
+Foam::surfaceScalarField&
+Foam::MovingPhaseModel<BasePhaseModel>::phiRef()
+{
+    return phi_;
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::surfaceScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::alphaPhi() const
+{
+    return alphaPhi_;
+}
+
+
+template<class BasePhaseModel>
+Foam::surfaceScalarField&
+Foam::MovingPhaseModel<BasePhaseModel>::alphaPhiRef()
+{
+    return alphaPhi_;
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::surfaceScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::alphaRhoPhi() const
+{
+    return alphaRhoPhi_;
+}
+
+
+template<class BasePhaseModel>
+Foam::surfaceScalarField&
+Foam::MovingPhaseModel<BasePhaseModel>::alphaRhoPhiRef()
+{
+    return alphaRhoPhi_;
+}
+```
+
+return the variables and return the references of the variables to modify them:
+
+* U(), 
+* URef(),
+* phi(), 
+* phiRef(),
+* alphaPhi(), 
+* alphaPhiRef(), 
+* alphaRhoPhi(), 
+* alphaRhoPhiRef()
+
+
+#### DUDt()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volVectorField>
+Foam::MovingPhaseModel<BasePhaseModel>::DUDt() const
+{
+    if (!DUDt_.valid())
+    {
+        DUDt_ = fvc::ddt(U_) + fvc::div(phi_, U_) - fvc::div(phi_)*U_;
+    }
+
+    return tmp<volVectorField>(DUDt_());
+}
+```
+
+* return the substantive acceleration
+
+* if `DUDt_` is not calculated, then
+  * $$DUDt_ = \frac{\partial \mathbf{U}^k}{\partial t} + \nabla \cdot (\phi \mathbf{U}^k) - \nabla \phi \cdot \mathbf{U}^k = \frac{\partial \mathbf{U}^k}{\partial t} + \phi \nabla \mathbf{U}^k$$
+
+material derivative or  substantial derivative:
+
+$$
+\frac{DF}{Dt} = \frac{\partial F}{\partial t} + \mathbf{U} \cdot \nabla F
+$$
+
+acceleration:
+
+$$
+\frac{D \mathbf{U}}{Dt} = \frac{\partial \mathbf{U}}{\partial t} + \mathbf{U} \cdot \nabla \mathbf{U}
+$$
+
+#### DUDtf()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::surfaceScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::DUDtf() const
+{
+    if (!DUDtf_.valid())
+    {
+        DUDtf_ = byDt(phi_ - phi_.oldTime());
+    }
+
+    return tmp<surfaceScalarField>(DUDtf_());
+}
+```
+
+* Return the substantive acceleration on the faces
+* if `DUDtf_` is not calculated, then
+  * $$DUDtf_ = \frac{\phi - \phi_{old}}{\Delta t}$$
+
+`byDt()` can be found in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.C`
+
+```cpp
+Foam::tmp<Foam::volScalarField> Foam::byDt(const volScalarField& vf)
+{
+    if (fv::localEulerDdt::enabled(vf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaT(vf.mesh())*vf;
+    }
+    else
+    {
+        return vf/vf.mesh().time().deltaT();
+    }
+}
+
+
+Foam::tmp<Foam::surfaceScalarField> Foam::byDt(const surfaceScalarField& sf)
+{
+    if (fv::localEulerDdt::enabled(sf.mesh()))
+    {
+        return fv::localEulerDdt::localRDeltaTf(sf.mesh())*sf;
+    }
+    else
+    {
+        return sf/sf.mesh().time().deltaT();
+    }
+}
+```
+
+$$
+byDt = \frac{s_f}{\Delta t}
+$$
+
+            
+#### continuityError()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::continuityError() const
+{
+    return continuityError_;
+}
+```
+
+* return `continuityError_`
+
+#### K()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::K() const
+{
+    if (!K_.valid())
+    {
+        K_ = volScalarField::New
+        (
+            IOobject::groupName("K", this->name()),
+            0.5*magSqr(this->U())
+        );
+    }
+
+    return tmp<volScalarField>(K_());
+}
+```
+
+* Return the phase kinetic energy
+  * $$K = \frac{\|\mathbf{U}^k\|^2}{2}$$
+
+#### divU()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::divU() const
+{
+    return divU_.valid() ? tmp<volScalarField>(divU_()) : tmp<volScalarField>();
+}
+```
+
+* if `divU_` exits, return it
+* else return an empty
+
+#### divU(divU)
+
+```cpp
+template<class BasePhaseModel>
+void Foam::MovingPhaseModel<BasePhaseModel>::divU(tmp<volScalarField> divU)
+{
+    divU_ = divU;
+}
+```
+
+* set `divU_`  as `divU`
+* $$divU_ = divU$$
+
+#### kappaEff(), k(), pPrime()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::scalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::kappaEff(const label patchi) const
+{
+    return thermophysicalTransport_->kappaEff(patchi);
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::k() const
+{
+    return turbulence_->k();
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::volScalarField>
+Foam::MovingPhaseModel<BasePhaseModel>::pPrime() const
+{
+    return turbulence_->pPrime();
+}
+```
+
+* return variables from thermal or turbulence model
+  * kappaEff(), 
+  * k(), 
+  * pPrime()
+
+#### divq(), divj()
+
+```cpp
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvScalarMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::divq(volScalarField& he) const
+{
+    return thermophysicalTransport_->divq(he);
+}
+
+
+template<class BasePhaseModel>
+Foam::tmp<Foam::fvScalarMatrix>
+Foam::MovingPhaseModel<BasePhaseModel>::divj(volScalarField& Yi) const
+{
+    return thermophysicalTransport_->divj(Yi);
+}
+```
+
+* return divq(), the source term for the energy equation, and divj(), the source term for the given specie mass-fraction equation
+* they can be found in `src\ThermophysicalTransportModels\laminar\Fourier\Fourier.C` or `src\ThermophysicalTransportModels\turbulence\eddyDiffusivity\eddyDiffusivity.C`
+
+in the former:
+
+```cpp
+template<class BasicThermophysicalTransportModel>
+tmp<fvScalarMatrix>
+Fourier<BasicThermophysicalTransportModel>::divq(volScalarField& he) const
+{
+    return -fvm::laplacian(this->alpha()*this->thermo().alpha(), he);
+}
+
+
+template<class BasicThermophysicalTransportModel>
+tmp<fvScalarMatrix>
+Fourier<BasicThermophysicalTransportModel>::divj(volScalarField& Yi) const
+{
+    return -fvm::laplacian(this->alpha()*this->thermo().alpha(), Yi);
+}
+```
+
+in the later:
+
+```cpp
+template<class TurbulenceThermophysicalTransportModel>
+tmp<fvScalarMatrix>
+eddyDiffusivity<TurbulenceThermophysicalTransportModel>::divq
+(
+    volScalarField& he
+) const
+{
+    return -fvm::laplacian(this->alpha()*this->alphaEff(), he);
+}
+
+
+template<class TurbulenceThermophysicalTransportModel>
+tmp<fvScalarMatrix>
+eddyDiffusivity<TurbulenceThermophysicalTransportModel>::divj
+(
+    volScalarField& Yi
+) const
+{
+    return -fvm::laplacian(this->alpha()*this->DEff(Yi), Yi);
+}
+```
+
+The later should be adopted, so
+
+$$
+divq = -\nabla \cdot \left[ \alpha^k \alpha_{Eff, thermo}^k \nabla he^k\right]
+$$
+
+$$
+divj = -\nabla \cdot \left[ \alpha^k D_{Eff}^k \nabla Yi^k\right]
+$$
 
 ##  phaseCompressibleMomentumTransportModel.H
 

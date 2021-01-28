@@ -80,6 +80,8 @@
         "populationBalanceModel.C": "cpp",
         "PhaseTransferPhaseSystem.C": "cpp",
         "multiphaseMixture.C": "cpp",
-        "multiphaseMixtureThermo.C": "cpp"
+        "multiphaseMixtureThermo.C": "cpp",
+        "twoPhaseMixtureThermo.C": "cpp",
+        "eddyDiffusivity.C": "cpp"
     }
 }
