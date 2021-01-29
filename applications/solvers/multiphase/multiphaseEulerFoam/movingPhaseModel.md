@@ -478,8 +478,57 @@ void Foam::MovingPhaseModel<BasePhaseModel>::correctContinuityError
 ```
 
 $$
-continuityError_  = \frac{\partial \alpha^k \rho^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k) - source
+continuityError_ = \frac{\partial \alpha^k \rho^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k) - source
 $$
+
+this is embeded in definition of `correctContinuityError()` as in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseSystem\phaseSystem.C`, where `source` is calculated and passed to this function as parameter
+
+```cpp
+void Foam::phaseSystem::correctContinuityError()
+{
+    const PtrList<volScalarField> dmdts = this->dmdts();
+
+    forAll(movingPhaseModels_, movingPhasei)
+    {
+        phaseModel& phase = movingPhaseModels_[movingPhasei];
+        const volScalarField& alpha = phase;
+        volScalarField& rho = phase.thermoRef().rho();
+
+        volScalarField source
+        (
+            volScalarField::New
+            (
+                IOobject::groupName("source", phase.name()),
+                mesh_,
+                dimensionedScalar(dimDensity/dimTime, 0)
+            )
+        );
+
+        if (fvOptions().appliesToField(rho.name()))
+        {
+            source += fvOptions()(alpha, rho)&rho;
+        }
+
+        if (dmdts.set(phase.index()))
+        {
+            source += dmdts[phase.index()];
+        }
+
+        phase.correctContinuityError(source);
+    }
+}
+```
+
+in `applications\solvers\multiphase\multiphaseEulerFoam\multiphaseEulerFoam\multiphaseEulerFoam.C`, `correctContinuityError()` is performed to get `continuityError_`
+
+```cpp
+        // --- Pressure-velocity PIMPLE corrector loop
+        while (pimple.loop())
+        {
+            fluid.solve(rAUs, rAUfs);
+            fluid.correct();
+            fluid.correctContinuityError();
+```
 
 #### correct()
 

@@ -3532,13 +3532,19 @@ which is the same with `divDevTau`
 The `UEqn` is defined as
 
 $$
-\frac{\partial \alpha \rho \mathbf{U}}{\partial t} + \nabla \cdot (\alpha \rho \phi \mathbf{U}) + SuSp(contErr, \mathbf{U}) + MRF(\alpha \rho \mathbf{U}) -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right]
+\frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi \mathbf{U}^k) + SuSp(continuityError_, \mathbf{U}^k) + MRF(\alpha^k \rho^k \mathbf{U}^k) -\nabla \cdot \left[\alpha^k \rho^k \nu_{Eff}^k \left((\nabla \mathbf{U}^k+(\nabla \mathbf{U}^k)^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}^k) \mathbf{I}\right)\right]
+$$
+
+or
+
+$$
+\frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi \mathbf{U}^k) + SuSp(continuityError_, \mathbf{U}^k) + MRF(\alpha^k \rho^k \mathbf{U}^k) -\nabla \cdot \tau^k
 $$
 
 So
 
 $$
-\frac{\partial \alpha \rho \mathbf{U}}{\partial t} + \nabla \cdot (\alpha \rho \phi \mathbf{U}) + SuSp(contErr, \mathbf{U}) + MRF(\alpha \rho \mathbf{U}) -\nabla \cdot \left[\alpha \rho \nu_{Eff} \left((\nabla \mathbf{U}+(\nabla \mathbf{U})^T) - \frac{2}{3} (\nabla \cdot \mathbf{U}) \mathbf{I}\right)\right] = momentumTransfer + fvOptions(\alpha, \rho, \mathbf{U})
+\frac{\partial \alpha^k \rho^k \mathbf{U}^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi \mathbf{U}^k) + SuSp(continuityError_, \mathbf{U}^k) + MRF(\alpha^k \rho^k \mathbf{U}^k) -\nabla \cdot \tau^k = momentumTransfer + fvOptions(\alpha, \rho, \mathbf{U})
 $$
 
 #### pEqn.H
