@@ -89,6 +89,7 @@
         "orderedPhasePair.C": "cpp",
         "dimensionedScalar.C": "cpp",
         "phasePairKey.C": "cpp",
-        "hyperbolic.C": "cpp"
+        "hyperbolic.C": "cpp",
+        "noBlending.C": "cpp"
     }
 }

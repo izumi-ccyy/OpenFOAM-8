@@ -2,6 +2,7 @@
 
 - [BlendedInterfacialModel](#blendedinterfacialmodel)
   - [BlendedInterfacialModel.H](#blendedinterfacialmodelh)
+    - [include](#include)
   - [BlendedInterfacialModel.C](#blendedinterfacialmodelc)
   - [blendingMethods](#blendingmethods)
     - [blendingMethod](#blendingmethod)
@@ -20,7 +21,19 @@
 
 ## BlendedInterfacialModel.H
 
+### include
 
+```cpp
+#ifndef BlendedInterfacialModel_H
+#define BlendedInterfacialModel_H
+
+#include "blendingMethod.H"
+#include "phasePair.H"
+#include "orderedPhasePair.H"
+#include "HashPtrTable.H"
+#include "hashedWordList.H"
+#include "geometricZeroField.H"
+```
 
 ## BlendedInterfacialModel.C
 
