@@ -82,6 +82,8 @@
         "multiphaseMixture.C": "cpp",
         "multiphaseMixtureThermo.C": "cpp",
         "twoPhaseMixtureThermo.C": "cpp",
-        "eddyDiffusivity.C": "cpp"
+        "eddyDiffusivity.C": "cpp",
+        "polynomial.C": "cpp",
+        "interfaceCompositionModel.C": "cpp"
     }
 }

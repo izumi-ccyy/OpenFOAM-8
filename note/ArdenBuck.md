@@ -138,6 +138,67 @@ $$
 p_{Sat} = A \exp(T_C  \frac{18.678 - \frac{T_C}{234.5}}{257.14 + T_C})= 611.21 \exp \left((18.678 - \frac{T_C}{234.5}) (\frac{T_C}{257.14 + T_C})\right)
 $$
 
+#### pSatPrime()
+
+```cpp
+Foam::tmp<Foam::volScalarField>
+Foam::saturationModels::ArdenBuck::pSatPrime
+(
+    const volScalarField& T
+) const
+{
+    volScalarField TC(T - zeroC);
+
+    volScalarField x(xByTC(TC));
+
+    return A*exp(TC*x)*(D*x - TC/C)/(D + TC);
+}
+```
+
+$$
+x = \frac{18.678 - \frac{T_C}{234.5}}{257.14 + T_C}
+$$
+
+$$
+\frac{\partial p_{Sat}}{\partial T} = A*exp(TC*x)*(D*x - TC/C)/(D + TC)
+$$
+
+#### lnPSat()
+
+```cpp
+Foam::tmp<Foam::volScalarField>
+Foam::saturationModels::ArdenBuck::lnPSat
+(
+    const volScalarField& T
+) const
+{
+    volScalarField TC(T - zeroC);
+
+    return log(A.value()) + TC*xByTC(TC);
+}
+```
+
+$$
+\ln{p_{Sat}} = \ln(611.21) + (18.678 - \frac{T_C}{234.5}) (\frac{T_C}{257.14 + T_C})
+$$
+
+#### Tsat()
+
+```cpp
+Foam::tmp<Foam::volScalarField>
+Foam::saturationModels::ArdenBuck::Tsat
+(
+    const volScalarField& p
+) const
+{
+    NotImplemented;
+
+    return volScalarField::null();
+}
+```
+
+no definition
+
 
 
 
