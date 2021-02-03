@@ -25,10 +25,25 @@
       - [rho(), MagUr() ...](#rho-magur-)
   - [orderedPhasePair](#orderedphasepair)
     - [orderedPhasePair.H](#orderedphasepairh)
+      - [include](#include-1)
+      - [inheritance](#inheritance-1)
+      - [public](#public-1)
     - [orderedPhasePair.C](#orderedphasepairc)
+      - [constructor and destructor](#constructor-and-destructor-2)
+      - [dispersed(), continuous(), name(), othername(), E()](#dispersed-continuous-name-othername-e)
   - [phasePairKey](#phasepairkey)
     - [phasePairKey.H](#phasepairkeyh)
+      - [include](#include-2)
+      - [friend functions](#friend-functions)
+      - [inheritance](#inheritance-2)
+      - [data and member function](#data-and-member-function)
+      - [constructor and destructor](#constructor-and-destructor-3)
+      - [access and friend functions](#access-and-friend-functions)
     - [phasePairKey.C](#phasepairkeyc)
+      - [constructor and destructor](#constructor-and-destructor-4)
+      - [order()](#order)
+      - [Member Operators](#member-operators)
+      - [friend operators and istream operators](#friend-operators-and-istream-operators)
 
 ## phasePair
 
@@ -783,12 +798,405 @@ the aspect ratio $E$ is calc from `orderedPhasePair`
 
 ### orderedPhasePair.H
 
+#### include
 
+```cpp
+#ifndef orderedPhasePair_H
+#define orderedPhasePair_H
+
+#include "phasePair.H"
+```
+
+#### inheritance
+
+inherited from `phasePair`
+
+#### public
+
+```cpp
+public:
+
+    // Constructors
+
+        //- Construct from two phases and gravity
+        orderedPhasePair
+        (
+            const phaseModel& dispersed,
+            const phaseModel& continuous
+        );
+
+
+    //- Destructor
+    virtual ~orderedPhasePair();
+
+
+    // Member Functions
+
+        //- Dispersed phase
+        virtual const phaseModel& dispersed() const;
+
+        //- Continuous phase
+        virtual const phaseModel& continuous() const;
+
+        //- Pair name
+        virtual word name() const;
+
+        //- Other pair name
+        virtual word otherName() const;
+
+        //- Aspect ratio
+        virtual tmp<volScalarField> E() const;
+```
 
 ### orderedPhasePair.C
+
+#### constructor and destructor
+
+```cpp
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::orderedPhasePair::orderedPhasePair
+(
+    const phaseModel& dispersed,
+    const phaseModel& continuous
+)
+:
+    phasePair
+    (
+        dispersed,
+        continuous,
+        true
+    )
+{}
+
+
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
+
+Foam::orderedPhasePair::~orderedPhasePair()
+{}
+```
+
+#### dispersed(), continuous(), name(), othername(), E()
+
+```cpp
+const Foam::phaseModel& Foam::orderedPhasePair::dispersed() const
+{
+    return phase1();
+}
+
+
+const Foam::phaseModel& Foam::orderedPhasePair::continuous() const
+{
+    return phase2();
+}
+
+Foam::word Foam::orderedPhasePair::name() const
+{
+    word namec(second());
+    namec[0] = toupper(namec[0]);
+    return first() + "In" + namec;
+}
+
+
+Foam::word Foam::orderedPhasePair::otherName() const
+{
+    FatalErrorInFunction
+        << "Requested other name phase from an ordered pair."
+        << exit(FatalError);
+
+    return word::null;
+}
+
+
+Foam::tmp<Foam::volScalarField> Foam::orderedPhasePair::E() const
+{
+    return phase1().fluid().E(*this);
+}
+```
+
+in `orderedPhasePair`, `phase1_` is dispersed while `phase2_` is continuous
+
+name of phase1_ "IN" name of phase2_, so the entries containing "in", the former is dispersed and the latter is continuous. In `phasePair`, it is "and" rather than "in"
+
+aspect ratio is defined for dispersed phase, so it is calculated with `phase1_`
+
+**ATTENTION: It should be noted that in `orderedPhasePair`, dispersed and continuous are defined but how to initialize or how to specify which phase is dispersed or continuous is not mentioned here!**
 
 ## phasePairKey
 
 ### phasePairKey.H
 
+#### include
+
+```cpp
+#ifndef phasePairKey_H
+#define phasePairKey_H
+
+#include "Pair.H"
+```
+
+#### friend functions
+
+```cpp
+// Forward declaration of friend functions and operators
+
+class phasePairKey;
+
+bool operator==(const phasePairKey&, const phasePairKey&);
+bool operator!=(const phasePairKey&, const phasePairKey&);
+
+Istream& operator>>(Istream&, phasePairKey&);
+Ostream& operator<<(Ostream&, const phasePairKey&);
+```
+
+#### inheritance
+
+inherited from `Pair`
+
+#### data and member function
+
+```cpp
+        class hash
+        :
+            public Hash<phasePairKey>
+        {
+        public:
+
+            // Constructors
+
+                // Construct null
+                hash();
+
+
+            // Member Operators
+
+                // Generate a hash from a phase pair key
+                label operator()(const phasePairKey& key) const;
+        };
+```
+
+define a class
+
+```cpp
+private:
+
+    // Private Data
+
+        //- Flag to indicate whether ordering is important
+        bool ordered_;
+```
+
+define a flag
+
+#### constructor and destructor
+
+```cpp
+    // Constructors
+
+        //- Construct null
+        phasePairKey();
+
+        //- Construct from names and the ordering flag
+        phasePairKey
+        (
+            const word& name1,
+            const word& name2,
+            const bool ordered = false
+        );
+
+
+    // Destructor
+    virtual ~phasePairKey();
+```
+
+#### access and friend functions
+
+```cpp
+    // Access
+
+        //- Return the ordered flag
+        bool ordered() const;
+
+
+    // Friend Operators
+
+        //- Test if keys are equal
+        friend bool operator==(const phasePairKey& a, const phasePairKey& b);
+
+        //- Test if keys are unequal
+        friend bool operator!=(const phasePairKey& a, const phasePairKey& b);
+
+        //- Read from stdin
+        friend Istream& operator>>(Istream& is, phasePairKey& key);
+
+        //- Write to stdout
+        friend Ostream& operator<<(Ostream& os, const phasePairKey& key);
+```
+
+constructor and destructor
+
 ### phasePairKey.C
+
+#### constructor and destructor
+
+```cpp
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::phasePairKey::hash::hash()
+{}
+
+
+Foam::phasePairKey::phasePairKey()
+{}
+
+
+Foam::phasePairKey::phasePairKey
+(
+    const word& name1,
+    const word& name2,
+    const bool ordered
+)
+:
+    Pair<word>(name1, name2),
+    ordered_(ordered)
+{}
+
+
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
+
+Foam::phasePairKey::~phasePairKey()
+{}
+```
+
+#### order()
+
+```cpp
+bool Foam::phasePairKey::ordered() const
+{
+    return ordered_;
+}
+```
+
+return if ordered
+
+#### Member Operators
+
+```cpp
+Foam::label Foam::phasePairKey::hash::operator()
+(
+    const phasePairKey& key
+) const
+{
+    if (key.ordered_)
+    {
+        return
+            word::hash()
+            (
+                key.first(),
+                word::hash()(key.second())
+            );
+    }
+    else
+    {
+        return
+            word::hash()(key.first())
+          + word::hash()(key.second());
+    }
+}
+```
+
+Generate a hash from a phase pair key, 
+* if ordered:
+  * generate one hash
+* else:
+  * generate two hash
+
+#### friend operators and istream operators
+
+```cpp
+// * * * * * * * * * * * * * * Friend Operators  * * * * * * * * * * * * * * //
+
+bool Foam::operator==
+(
+    const phasePairKey& a,
+    const phasePairKey& b
+)
+{
+    const label c = Pair<word>::compare(a, b);
+
+    return
+        (a.ordered_ == b.ordered_)
+     && (
+            (a.ordered_ && (c == 1))
+         || (!a.ordered_ && (c != 0))
+        );
+}
+
+
+bool Foam::operator!=
+(
+    const phasePairKey& a,
+    const phasePairKey& b
+)
+{
+    return !(a == b);
+}
+
+
+// * * * * * * * * * * * * * * Istream Operator  * * * * * * * * * * * * * * //
+
+Foam::Istream& Foam::operator>>(Istream& is, phasePairKey& key)
+{
+    const FixedList<word, 3> temp(is);
+
+    key.first() = temp[0];
+
+    if (temp[1] == "and")
+    {
+        key.ordered_ = false;
+    }
+    else if (temp[1] == "in")
+    {
+        key.ordered_ = true;
+    }
+    else
+    {
+        FatalErrorInFunction
+            << "Phase pair type is not recognised. "
+            << temp
+            << "Use (phaseDispersed in phaseContinuous) for an ordered"
+            << "pair, or (phase1 and pase2) for an unordered pair."
+            << exit(FatalError);
+    }
+
+    key.second() = temp[2];
+
+    return is;
+}
+
+
+// * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * * //
+
+Foam::Ostream& Foam::operator<<(Ostream& os, const phasePairKey& key)
+{
+    os  << token::BEGIN_LIST
+        << key.first()
+        << token::SPACE
+        << (key.ordered_ ? "in" : "and")
+        << token::SPACE
+        << key.second()
+        << token::END_LIST;
+
+    return os;
+}
+```
+
+* Test if keys are equal
+* Test if keys are unequal
+* Read from stdin
+* Write to stdout
+
+from `operator>>()` it can be noted that:
+
+* "in" means ordered pair, the former is the dispersed phase
+* "and" means unordered pair
