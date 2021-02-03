@@ -90,6 +90,10 @@
         "dimensionedScalar.C": "cpp",
         "phasePairKey.C": "cpp",
         "hyperbolic.C": "cpp",
-        "noBlending.C": "cpp"
+        "noBlending.C": "cpp",
+        "blendingMethod.C": "cpp",
+        "blendingMethodNew.C": "cpp",
+        "linear.C": "cpp",
+        "GeometricField.C": "cpp"
     }
 }
