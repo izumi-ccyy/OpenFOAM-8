@@ -59,7 +59,10 @@
         - [f1() and f2()](#f1-and-f2-2)
     - [hyperbolic](#hyperbolic)
       - [hyperbolic.H](#hyperbolich)
+        - [private data](#private-data-2)
       - [hyperbolic.C](#hyperbolicc)
+        - [f1() and f2()](#f1-and-f2-3)
+  - [Discussion](#discussion)
 
 ## BlendedInterfacialModel.H
 
@@ -1409,8 +1412,105 @@ Foam::tmp<Foam::volScalarField> Foam::blendingMethods::linear::f2
 }
 ```
 
+* for f1()
+  * get `minFullyContinuousAlpha_` and `minPartlyContinuousAlpha_` of phase2_ as minFullAlpha and minPartAlpha
+  * define and return $f_1$ as
+  * $$f_1 = \min(\max(\frac{\alpha_2 - minPartAlpha}{minFullAlpha - minPartAlpha + small}, 0), 1)$$
+* for f2()
+  * get `minFullyContinuousAlpha_` and `minPartlyContinuousAlpha_` of phase1_ as minFullAlpha and minPartAlpha
+  * define and return $f_1$ as
+  * $$f_1 = \min(\max(\frac{\alpha_1 - minPartAlpha}{minFullAlpha - minPartAlpha + small}, 0), 1)$$
+
+according to `minFullyContinuousAlpha_` and `minPartlyContinuousAlpha_` and $\alpha$ to decide whether a phase is continuous or dispersed
+
+* take f1() as example 
+  * if $\alpha_2 < minPartAlpha$, phase2_ is not even partly continuous
+    * $f_1 = 0$
+  * if $minPartAlpha < \alpha_2 < minFullAlpha$, phase2_ is between fully and partly continuous
+    * $f_1 = \frac{\alpha_2 - minPartAlpha}{minFullAlpha - minPartAlpha + small}$, which is between [0, 1]
+  * if $\alpha_2 > minFullAlpha$, phase2_ is fully continuous
+    * $f_1 = 1$, which is the same with `noBlending`
+  
 ### hyperbolic
 
 #### hyperbolic.H
 
+##### private data
+
+```cpp
+        //- Minimum fraction of phases which can be considered continuous
+        HashTable<dimensionedScalar, word, word::hash> minContinuousAlpha_;
+
+        //- Width of the transition
+        const dimensionedScalar transitionAlphaScale_;
+```
+
+define `minContinuousAlpha_` and `transitionAlphaScale_`
+
 #### hyperbolic.C
+
+##### f1() and f2()
+
+```cpp
+Foam::tmp<Foam::volScalarField> Foam::blendingMethods::hyperbolic::f1
+(
+    const phaseModel& phase1,
+    const phaseModel& phase2
+) const
+{
+    return
+        (
+            1
+          + tanh
+            (
+                (4/transitionAlphaScale_)
+               *(phase2 - minContinuousAlpha_[phase2.name()])
+            )
+        )/2;
+}
+
+
+Foam::tmp<Foam::volScalarField> Foam::blendingMethods::hyperbolic::f2
+(
+    const phaseModel& phase1,
+    const phaseModel& phase2
+) const
+{
+    return
+        (
+            1
+          + tanh
+            (
+                (4/transitionAlphaScale_)
+               *(phase1 - minContinuousAlpha_[phase1.name()])
+            )
+        )/2;
+}
+```
+
+* for f1()
+  * $$f_1 = \frac{1}{2}\left[1 + \tanh(\frac{4}{transitionAlphaScale\_}(\alpha_2 - minContinuousAlpha\__{phase2\_}))\right]$$
+* for f2()
+  * $$f_1 = \frac{1}{2}\left[1 + \tanh(\frac{4}{transitionAlphaScale\_}(\alpha_1 - minContinuousAlpha\__{phase1\_}))\right]$$
+
+## Discussion
+
+take noBlending as example, the coefficients are calculated as
+
+* If phase1_ is continuousPhase_, phase2_ is not continuousPhase_, then 
+  * $f_1 = 0$, $f_2 = 1$
+* If phase1_ is not continuousPhase_, phase2_ is continuousPhase_, then 
+  * $f_1 = 1$, $f_2 = 0$
+
+then the coefficients are used in blending for three kind of model
+
+* no dispersed and continuous phase, say, `model_`, then
+  * the model is multiplied with a coefficient of $1 - f_1 - f_2$
+* if phase1_ is dispersed and phase2_ is continuous, then
+  * the model is multiplied with a coefficient of $f_1$, for no blending, it's $1$
+* if phase2_ is dispersed and phase1_ is continuous, then
+  * the model is multiplied with a coefficient of $f_2$, for no blending, it's also $1$
+
+in summary, blending is to using models according to the relationship between the two phases
+
+
