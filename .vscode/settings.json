@@ -94,6 +94,15 @@
         "blendingMethod.C": "cpp",
         "blendingMethodNew.C": "cpp",
         "linear.C": "cpp",
-        "GeometricField.C": "cpp"
+        "GeometricField.C": "cpp",
+        "dragModelNew.C": "cpp",
+        "dragModel.C": "cpp",
+        "SchillerNaumann.C": "cpp",
+        "segregated.C": "cpp",
+        "aerosolDrag.C": "cpp",
+        "TomiyamaSwarm.C": "cpp",
+        "noSwarm.C": "cpp",
+        "IATEsource.C": "cpp",
+        "IshiiZuber.C": "cpp"
     }
 }

@@ -63,6 +63,7 @@
       - [hyperbolic.C](#hyperbolicc)
         - [f1() and f2()](#f1-and-f2-3)
   - [Discussion](#discussion)
+  - [A summary](#a-summary)
 
 ## BlendedInterfacialModel.H
 
@@ -1418,8 +1419,8 @@ Foam::tmp<Foam::volScalarField> Foam::blendingMethods::linear::f2
   * $$f_1 = \min(\max(\frac{\alpha_2 - minPartAlpha}{minFullAlpha - minPartAlpha + small}, 0), 1)$$
 * for f2()
   * get `minFullyContinuousAlpha_` and `minPartlyContinuousAlpha_` of phase1_ as minFullAlpha and minPartAlpha
-  * define and return $f_1$ as
-  * $$f_1 = \min(\max(\frac{\alpha_1 - minPartAlpha}{minFullAlpha - minPartAlpha + small}, 0), 1)$$
+  * define and return $f_2$ as
+  * $$f_2 = \min(\max(\frac{\alpha_1 - minPartAlpha}{minFullAlpha - minPartAlpha + small}, 0), 1)$$
 
 according to `minFullyContinuousAlpha_` and `minPartlyContinuousAlpha_` and $\alpha$ to decide whether a phase is continuous or dispersed
 
@@ -1512,5 +1513,14 @@ then the coefficients are used in blending for three kind of model
   * the model is multiplied with a coefficient of $f_2$, for no blending, it's also $1$
 
 in summary, blending is to using models according to the relationship between the two phases
+
+## A summary
+
+method | required entry | phase2_ is continuous | phase1_ is continuous
+ - | - | - | -
+  none | continuousPhase_ | $f_1 = 1$, $f_2 = 0$ | $f_1 = 0$, $f_2 = 1$
+  linear | minFullyContinuousAlpha_ minPartlyContinuousAlpha_ | | 
+  hyperbolic | minContinuousAlpha_ transitionAlphaScale_| |
+
 
 
