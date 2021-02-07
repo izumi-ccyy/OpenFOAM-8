@@ -103,6 +103,11 @@
         "TomiyamaSwarm.C": "cpp",
         "noSwarm.C": "cpp",
         "IATEsource.C": "cpp",
-        "IshiiZuber.C": "cpp"
+        "IshiiZuber.C": "cpp",
+        "dimensionedType.C": "cpp",
+        "FieldFieldFunctions.C": "cpp",
+        "constantDiameter.C": "cpp",
+        "diameterModel.C": "cpp",
+        "diameterModelNew.C": "cpp"
     }
 }

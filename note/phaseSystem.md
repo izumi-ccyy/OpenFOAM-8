@@ -7,49 +7,54 @@
     - [protected typedefs](#protected-typedefs)
     - [protected data](#protected-data)
   - [phaseSystemI.H](#phasesystemih)
-      - [phaseSystemNew.C](#phasesystemnewc)
-      - [phaseSystemTemplates.C](#phasesystemtemplatesc)
-        - [addfield 1](#addfield-1)
-      - [phaseSystem.C](#phasesystemc)
-        - [calcPhi](#calcphi)
-        - [generatePairs](#generatepairs)
-        - [sumAlphaMoving](#sumalphamoving)
-        - [setMixtureU](#setmixtureu)
-        - [setMixturePhi](#setmixturephi)
-        - [nHatfv](#nhatfv)
-        - [nHatf](#nhatf)
-        - [correctContactAngle (uncompleted)](#correctcontactangle-uncompleted)
-        - [K](#k)
-        - [Constructors 1: phaseSystem](#constructors-1-phasesystem)
-        - [Destructor ~phaseSystem](#destructor-phasesystem)
-        - [rho](#rho)
-        - [U](#u)
-        - [E](#e)
-        - [sigma1](#sigma1)
-        - [sigma2](#sigma2)
-        - [nearInterface](#nearinterface)
-        - [dmdtf](#dmdtf)
-        - [dmdts](#dmdts)
-        - [incompressible](#incompressible)
-        - [implicitPhasePressure](#implicitphasepressure)
-        - [surfaceTension](#surfacetension)
-        - [correct](#correct)
-        - [correctContinuityError](#correctcontinuityerror)
-        - [correctKinematics](#correctkinematics)
-        - [correctThermo](#correctthermo)
-        - [correctReactions](#correctreactions)
-        - [correctSpecies](#correctspecies)
-        - [correctTurbulelnce](#correctturbulelnce)
-        - [correctEnergyTransport](#correctenergytransport)
-        - [read](#read)
-        - [byDt1](#bydt1)
-        - [byDt2](#bydt2)
-      - [phaseSystemSolve.C](#phasesystemsolvec)
-        - [Definitions to solve the equation](#definitions-to-solve-the-equation)
-        - [The loop to solve the equation](#the-loop-to-solve-the-equation)
-          - [Source](#source)
-          - [Controls](#controls)
-          - [Solving loop](#solving-loop)
+  - [phaseSystemNew.C](#phasesystemnewc)
+  - [phaseSystemTemplates.C](#phasesystemtemplatesc)
+    - [addfield 1](#addfield-1)
+  - [phaseSystem.C](#phasesystemc)
+    - [calcPhi](#calcphi)
+    - [generatePairs](#generatepairs)
+    - [sumAlphaMoving](#sumalphamoving)
+    - [setMixtureU](#setmixtureu)
+    - [setMixturePhi](#setmixturephi)
+    - [nHatfv](#nhatfv)
+    - [nHatf](#nhatf)
+    - [correctContactAngle (uncompleted)](#correctcontactangle-uncompleted)
+    - [K](#k)
+    - [Constructors 1: phaseSystem](#constructors-1-phasesystem)
+    - [Destructor ~phaseSystem](#destructor-phasesystem)
+    - [rho](#rho)
+    - [U](#u)
+    - [E](#e)
+    - [sigma1](#sigma1)
+    - [sigma2](#sigma2)
+    - [nearInterface](#nearinterface)
+    - [dmdtf](#dmdtf)
+    - [dmdts](#dmdts)
+    - [incompressible](#incompressible)
+    - [implicitPhasePressure](#implicitphasepressure)
+    - [surfaceTension](#surfacetension)
+    - [correct](#correct)
+    - [correctContinuityError](#correctcontinuityerror)
+    - [correctKinematics](#correctkinematics)
+    - [correctThermo](#correctthermo)
+    - [correctReactions](#correctreactions)
+    - [correctSpecies](#correctspecies)
+    - [correctTurbulelnce](#correctturbulelnce)
+    - [correctEnergyTransport](#correctenergytransport)
+    - [read](#read)
+    - [byDt1](#bydt1)
+    - [byDt2](#bydt2)
+  - [phaseSystemSolve.C](#phasesystemsolvec)
+    - [include](#include-1)
+    - [Definitions to solve the equation](#definitions-to-solve-the-equation)
+    - [The loop to solve the equation](#the-loop-to-solve-the-equation)
+      - [Source](#source)
+      - [Controls](#controls)
+      - [Solving loop](#solving-loop)
+        - [Generate face-alphas](#generate-face-alphas)
+        - [Create correction fluxes](#create-correction-fluxes)
+        - [Limit the flux sums](#limit-the-flux-sums)
+        - [solve](#solve)
 
 ## phaseSystem.H
 
@@ -148,7 +153,7 @@ protected:
 
 ### protected data
 
-
+details are in 
 
 ## phaseSystemI.H
 
@@ -176,7 +181,7 @@ The following functions are defined here:
 * MRF()
 * fvOptions()
 
-#### phaseSystemNew.C
+## phaseSystemNew.C
 
 ```cpp
 Foam::autoPtr<Foam::phaseSystem> Foam::phaseSystem::New
@@ -222,7 +227,9 @@ Foam::autoPtr<Foam::phaseSystem> Foam::phaseSystem::New
 
 create a new `phaseSystem` containing one or more phases types
 
-#### phaseSystemTemplates.C
+## phaseSystemTemplates.C
+
+lookup submodels from dicts and create submodels
 
 define some protected member function:
 
@@ -241,7 +248,7 @@ define some inline function
 
 * addField()
 
-##### addfield 1
+### addfield 1
 
 ```cpp
 template<class GeoField, class Group>
@@ -282,9 +289,9 @@ inline void addField
 * the third parameter `field` is to provide the field of the new field
 * the fouth parameter `fieldList` is to provide the list where the new field is added to
 
-#### phaseSystem.C
+## phaseSystem.C
 
-##### calcPhi
+### calcPhi
 
 ```cpp
 Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::calcPhi
@@ -314,7 +321,7 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::calcPhi
 calculate and return the mixture flux
 
 * define `tmpPhi`
-  * $$tmpPhi = \phi = \sum_{k = 1}^N (\alpha^k)_f \phi^k_f$$
+  * $$tmpPhi = \phi = \sum_{k = 1}^N (\alpha^k \phi^k)_f$$
 
 where $N$ is the phase number
 
@@ -322,7 +329,7 @@ where $N$ is the phase number
 
 `tmpPhi` is the `phi` of `phase[0]`
 
-##### generatePairs
+### generatePairs
 
 ```cpp
 void Foam::phaseSystem::generatePairs
@@ -377,9 +384,18 @@ void Foam::phaseSystem::generatePairs
 
 **what is `phasePairs`?**
 
-for the interfering phases
+see `phasePair`
 
-##### sumAlphaMoving
+read dict to generate pairs
+
+* if pair already exsits, then
+  * do nothing
+* if a new ordered pair (phase1_ **in** phase2_), then
+  * insert a ordered pair to `phasePairs_`
+* if a new unordered pair (phase1_ **and** phase2_), then
+  * insert a unordered pair to `phasePairs_`
+
+### sumAlphaMoving
 
 ```cpp
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::sumAlphaMoving() const
@@ -411,11 +427,11 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::sumAlphaMoving() const
 Return the sum of the phase fractions of the moving phases
 
 * define `sumAlphaMoving`
-* $$sumAlphaMoving = \sum_{k = 1}^N \alpha^k$$
+* $$sumAlphaMoving = \sum_{k = 1}^M \alpha^k$$
 
-where $N$ is the number of moving phases
+where $M$ is the number of moving phases
 
-##### setMixtureU
+### setMixtureU
 
 ```cpp
 void Foam::phaseSystem::setMixtureU(const volVectorField& Um0)
@@ -441,14 +457,20 @@ void Foam::phaseSystem::setMixtureU(const volVectorField& Um0)
 Re-normalise the velocity of the phases around the specified mixture mean
 
 $$
-dUm = U_{m0} - \sum_{k=1}^N \alpha^k\mathbf{U}^k
+\mathbf{U}_m = \sum_{k=1}^M \alpha^k \mathbf{U}^k
 $$
 
 $$
-\mathbf{U}^k = \mathbf{U}^k + dUm
+dUm = U_{m0} - \mathbf{U}_m = U_{m0} - \sum_{k=1}^M \alpha^k\mathbf{U}^k
 $$
 
-##### setMixturePhi
+dUm is the different between the real mixture velocity $\mathbf{U}_m$ and the specified mixture velocity $Um0$, so to renormalized the velocity, the difference should be add to the phase velocities, as
+
+$$
+\mathbf{U}^k = \mathbf{U}^k + dUm = \mathbf{U}^k + U_{m0} - \sum_{k=1}^M \alpha^k\mathbf{U}^k
+$$
+
+### setMixturePhi
 
 ```cpp
 void Foam::phaseSystem::setMixturePhi
@@ -478,11 +500,12 @@ void Foam::phaseSystem::setMixturePhi
 Re-normalise the flux of the phases around the specified mixture mean
 
 * set `dphim = phim0`
-* $$dphim = phim0 - \sum_{k=1}^N \alpha^k_f \phi^k$$
-  * where $N$ is the moving phase number
+* $$\phi_m = \sum_{k=1}^M (\alpha^k)_f \phi^k$$
+* $$dphim = phim0 - \phi_m = phim0 - \sum_{k=1}^M (\alpha^k)_f \phi^k$$
+  * where $M$ is the moving phase number
 * $$\phi^k = \phi_k + dphim$$
 
-##### nHatfv
+### nHatfv
 
 ```cpp
 Foam::tmp<Foam::surfaceVectorField> Foam::phaseSystem::nHatfv
@@ -522,10 +545,10 @@ nHatfv = \frac{gradAlphaf}{\|gradAlphaf\| + deltaN\_}
 $$
 
 $$
-nHatfv = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_}
+nHatfv = \hat{n}_{fv} = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_}
 $$
 
-##### nHatf
+### nHatf
 
 ```cpp
 Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::nHatf
@@ -540,10 +563,10 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::nHatf
 ```
 
 $$
-nHatf = nHatfv \cdot \mathbf{S}_f = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f
+nHatf = \hat{n}_{f} = \hat{n}_{fv} \cdot \mathbf{S}_f = \frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f
 $$
 
-##### correctContactAngle (uncompleted)
+### correctContactAngle (uncompleted)
 
 ```cpp
 void Foam::phaseSystem::correctContactAngle
@@ -660,7 +683,7 @@ void Foam::phaseSystem::correctContactAngle
     * get `AfHatPatch` as
       * $$AfHatPatch = \frac{\mathbf{S}_f}{\|\mathbf{S}_f\|}$$
 
-##### K
+### K
 
 ```cpp
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::K
@@ -681,10 +704,10 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::K
 Curvature of interface between two phases, used for interface compression
 
 $$
-K = \nabla \cdot (nHatfv \cdot \mathbf{S}_f) = \nabla \cdot \left(\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right)
+K = -\nabla \cdot (nHatfv \cdot \mathbf{S}_f) = -\nabla \cdot \left(\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right)
 $$
 
-##### Constructors 1: phaseSystem
+### Constructors 1: phaseSystem
 
 ```cpp
 Foam::phaseSystem::phaseSystem
@@ -851,14 +874,40 @@ Foam::phaseSystem::phaseSystem
 }
 ```
 
-##### Destructor ~phaseSystem 
+* set the number of different phases to zero
+* for every phase in phaseModels_
+  * set phase as phaseModels_[i]
+  * get the number of different phases, adding 1
+* set the number of different phases
+* reset the index of different phase to zero
+* for every phase in phaseModels_:
+  * set different phases in differet list
+* write $\phi$
+* for every entry in dict of "blending"
+  * add blending models to the list
+* read dict to define submodels
+  * surfaceTension model
+  * aspectRatio model
+* update motion fields
+* set the optional reference phase fraction from the other phases
+  * if reference phase exists
+    * get a reference of the reference phase
+    * get $\alpha_r$ as the reference phase fraction
+    * $\alpha_r=1$
+    * for every phase
+      * if vurrent phase[i] is not the reference phase, then
+        * $\alpha_r = 1 - \sum_{k in not r} \alpha^k$
+* for every phase:
+  * setFluxRequired
+
+### Destructor ~phaseSystem 
 
 ```cpp
 Foam::phaseSystem::~phaseSystem()
 {}
 ```
 
-##### rho
+### rho
 
 ```cpp
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::rho() const
@@ -890,21 +939,21 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::rho() const
 
 return the mixture density
 
-if there is no stationary phases:
+if there is no stationary phases, $\sum \alpha^k = 1$:
 
 $$
-\rho = \sum_{k = 1}^{N} \alpha^k \rho^k
+\rho = \sum_{k = 1}^{M} \alpha^k \rho^k
 $$
 
 else
 
 $$
-\rho = \frac{\sum_{k = 1}^{N} \alpha^k \rho^k}{\sum_{l=1}^{M} \alpha^l}
+\rho = \frac{\sum_{k = 1}^{M} \alpha^k \rho^k}{\sum_{l=1}^{M} \alpha^l}
 $$
 
 where $M$ is the number of moving phases
 
-##### U
+### U
 
 ```cpp
 Foam::tmp<Foam::volVectorField> Foam::phaseSystem::U() const
@@ -939,18 +988,18 @@ return the mixture velocity
 if there is no stationary phases:
 
 $$
-\mathbf{U} = \sum_{k = 1}^{N} \alpha^k \mathbf{U}^k
+\mathbf{U} = \sum_{k = 1}^{M} \alpha^k \mathbf{U}^k
 $$
 
 else
 
 $$
-\mathbf{U} = \frac{\sum_{k = 1}^{N} \alpha^k \mathbf{U}^k}{\sum_{l=1}^{M} \alpha^l}
+\mathbf{U} = \frac{\sum_{k = 1}^{M} \alpha^k \mathbf{U}^k}{\sum_{l=1}^{M} \alpha^l}
 $$
 
 where $M$ is the number of moving phases
 
-##### E
+### E
 
 ```cpp
 Foam::tmp<Foam::volScalarField>
@@ -974,7 +1023,9 @@ Foam::phaseSystem::E(const phasePairKey& key) const
 
 Return the aspect-ratio $E_{k,l}$ for a pair of $k$th phase and $l$th phase.
 
-##### sigma1
+if the aspect ratio model is found then using the model, else, define and set $E=1$
+
+### sigma1
 
 ```cpp
 Foam::tmp<Foam::volScalarField>
@@ -998,7 +1049,9 @@ Foam::phaseSystem::sigma(const phasePairKey& key) const
 
 Return the surface tension coefficient $\sigma_{k,l}$ for a pair $k$th phase and $l$th phase
 
-##### sigma2
+if the surface tension model is found then using the model, else, define and set $\sigma=0$
+
+### sigma2
 
 ```cpp
 Foam::tmp<Foam::scalarField>
@@ -1020,7 +1073,9 @@ Foam::phaseSystem::sigma(const phasePairKey& key, label patchi) const
 
 Return the surface tension coefficient $\sigma_{k,l}$ for a pair $k$th phase and $l$th phase on a patch
 
-##### nearInterface
+if the surface tension model is found then using the model, else, define and set $\sigma=0$
+
+### nearInterface
 
 ```cpp
 Foam::tmp<Foam::volScalarField>
@@ -1053,13 +1108,16 @@ Foam::phaseSystem::nearInterface() const
 
 pos0(phases()[phasei] - 0.01)*pos0(0.99 - phases()[phasei])
 
-* if phases()[phasei] > 0.01, then pos0(phases()[phasei] - 0.01) = 1;
-* if phases()[phasei] < 0.99, then pos0(0.99 - phases()[phasei]) = 1;
-* so if 0.01 < phases()[phasei] < 0.99, it equals to 1
+* set `tnearInt = 0`
+* for every phase:
+  * if $0.01 <\alpha^k < 0.99$, then
+    * $$tnearInt = 1$$, near the interface
+    * only near interface $\alpha$ is neither 1 nor 0
+  * else if $\alpha^k < 0.01$ or $\alpha^k> 0.99$, then
+    * $$tnearInt = 0$$, away the interface
+    * only away the interface, $\alpha$ is either 1 or 0
 
-So only if 0.01 < phases()[phasei] < 0.99, tnearInt = 1, otherwise tneatInt = 0
-
-##### dmdtf
+### dmdtf
 
 ```cpp
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::dmdtf
@@ -1087,7 +1145,7 @@ $$
 dmdtf = 0
 $$
 
-##### dmdts
+### dmdts
 
 ```cpp
 Foam::PtrList<Foam::volScalarField> Foam::phaseSystem::dmdts() const
@@ -1098,7 +1156,7 @@ Foam::PtrList<Foam::volScalarField> Foam::phaseSystem::dmdts() const
 
 return a mass transfer rates for each phase
 
-##### incompressible
+### incompressible
 
 ```cpp
 bool Foam::phaseSystem::incompressible() const
@@ -1117,7 +1175,7 @@ bool Foam::phaseSystem::incompressible() const
 
 if incompressible return `True`, else return `False`
 
-##### implicitPhasePressure
+### implicitPhasePressure
 
 ```cpp
 bool Foam::phaseSystem::implicitPhasePressure(const phaseModel& phase) const
@@ -1134,7 +1192,7 @@ bool Foam::phaseSystem::implicitPhasePressure() const
 
 is the phase pressure treated implicit
 
-##### surfaceTension
+### surfaceTension
 
 ```cpp
 Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::surfaceTension
@@ -1178,18 +1236,16 @@ Foam::tmp<Foam::surfaceScalarField> Foam::phaseSystem::surfaceTension
 }
 ```
 
-$$
-tSurfaceTension = \sum_{i=2}^N \sigma_{1,i} K_{1,i} (phase_i \nabla phase_1 - phase_1 \nabla phase_i)
-$$
+* set tSurfaceTension = 0
+* for every phasej:
+  * get $\alpha^j$ 
+  * if phasej is not the parameter phase1
+    * set a phasePairKey as phase1 and phase2 (phasej)
+    * get $c_{\alpha}$ for the phasePair of phase1 and phase2
+    * if it is not end, then
+      * $$tSurfaceTension = \sum_{i=2}^N \sigma_{1,i} K_{1,i} ((\alpha^i)_f (\nabla \alpha^1)_f - (\alpha^1)_f (\nabla \alpha^i)_f)$$
 
-or
-
-$$
-tSurfaceTension = \sum_{i=2}^N \sigma_{1,i} K_{1,i} ((\alpha^i)_f (\nabla \alpha^1)_f - (\alpha^1)_f (\nabla \alpha^i)_f)
-$$
-
-
-##### correct
+### correct
 
 ```cpp
 void Foam::phaseSystem::correct()
@@ -1201,7 +1257,7 @@ void Foam::phaseSystem::correct()
 }
 ```
 
-##### correctContinuityError
+### correctContinuityError
 
 ```cpp
 void Foam::phaseSystem::correctContinuityError()
@@ -1239,7 +1295,18 @@ void Foam::phaseSystem::correctContinuityError()
 }
 ```
 
-##### correctKinematics
+* get `dmdts`
+* for every moving phase k:
+  * get $\alpha^k$, $\rho^k$
+  * define $source^k = 0$
+  * if fvOpentions() exists
+    * add it to `source^k`
+  * if dmdts exists
+    * add to `source^k`
+  * perform `correctContinuityError(source)` in `movingPhaseModel`, as
+    * $$continuityError_ = \frac{\partial \alpha^k \rho^k}{\partial t} + \nabla \cdot (\alpha^k \rho^k \phi^k) - source$$
+
+### correctKinematics
 
 ```cpp
 void Foam::phaseSystem::correctKinematics()
@@ -1261,7 +1328,13 @@ void Foam::phaseSystem::correctKinematics()
 }
 ```
 
-##### correctThermo
+* set updateDpdt = false
+* correct kinematics with phase model
+* update updateDpdt, it phase model requires dpdt, then set updateDpdt to true
+* if ipdateDpdt is true
+  * $$dpdt- = \frac{\partial p}{\partial t}$$
+
+### correctThermo
 
 ```cpp
 void Foam::phaseSystem::correctThermo()
@@ -1273,7 +1346,7 @@ void Foam::phaseSystem::correctThermo()
 }
 ```
 
-##### correctReactions
+### correctReactions
 
 ```cpp
 void Foam::phaseSystem::correctReactions()
@@ -1285,7 +1358,7 @@ void Foam::phaseSystem::correctReactions()
 }
 ```
 
-##### correctSpecies
+### correctSpecies
 
 ```cpp
 void Foam::phaseSystem::correctSpecies()
@@ -1297,7 +1370,7 @@ void Foam::phaseSystem::correctSpecies()
 }
 ```
 
-##### correctTurbulelnce
+### correctTurbulelnce
 
 ```cpp
 void Foam::phaseSystem::correctTurbulence()
@@ -1309,7 +1382,7 @@ void Foam::phaseSystem::correctTurbulence()
 }
 ```
 
-##### correctEnergyTransport
+### correctEnergyTransport
 
 ```cpp
 void Foam::phaseSystem::correctEnergyTransport()
@@ -1321,7 +1394,7 @@ void Foam::phaseSystem::correctEnergyTransport()
 }
 ```
 
-##### read
+### read
 
 ```cpp
 bool Foam::phaseSystem::read()
@@ -1346,7 +1419,7 @@ bool Foam::phaseSystem::read()
 }
 ```
 
-##### byDt1
+### byDt1
 
 ```cpp
 Foam::tmp<Foam::volScalarField> Foam::byDt(const volScalarField& vf)
@@ -1372,7 +1445,7 @@ $$
 byDt = \frac{v_f}{\Delta t}
 $$
 
-##### byDt2
+### byDt2
 
 ```cpp
 Foam::tmp<Foam::surfaceScalarField> Foam::byDt(const surfaceScalarField& sf)
@@ -1398,9 +1471,29 @@ $$
 byDt = \frac{s_f}{\Delta t_f}
 $$
 
-#### phaseSystemSolve.C
+## phaseSystemSolve.C
 
-##### Definitions to solve the equation
+### include
+
+```cpp
+#include "phaseSystem.H"
+
+#include "MULES.H"
+#include "subCycle.H"
+
+#include "fvcDdt.H"
+#include "fvcDiv.H"
+#include "fvcSnGrad.H"
+#include "fvcFlux.H"
+#include "fvcMeshPhi.H"
+#include "fvcSup.H"
+
+#include "fvmDdt.H"
+#include "fvmLaplacian.H"
+#include "fvmSup.H"
+```
+
+### Definitions to solve the equation
 
 ```cpp
 void Foam::phaseSystem::solve
@@ -1442,6 +1535,8 @@ define and get some control variables:
 * get the list of phase that are to be solved `solvePhases`
 
 ```cpp
+    // The phases which are solved
+    // i.e. the moving phases less the optional reference phase
     if (referencePhaseName_ != word::null)
     {
         referencePhasePtr = &phases()[referencePhaseName_];
@@ -1468,9 +1563,11 @@ get `solvePhases` from `movingPhases`
   * reduce 1 from the size of solved phases (because reference phase is not solved)
   * for every moving phase:
     * if current moving phase is not the reference phase, then
-      * set current moving phase as `slovePhases`
+      * set current moving phase as `solvePhases`
 * else
   * set `solvePhases` as `movingPhases`
+
+In summary, movingPhases = solvePhases + referencePhase
 
 ```cpp
     // The phases included in the flux sum limit
@@ -1556,7 +1653,9 @@ define a pointer list of `surfaceScalarField` variables with the size of phase s
 * for every stationary phases:
   * $$alphaVoid - alphaVoid - \alpha_{stationary, k}$$
   * namely
-    * $$alphaVoid = 1 - \sum_{k = 1}^N \alpha_{stationary, k}$$
+    * $$alphaVoid = 1 - \sum_{k = 1}^N \alpha_{stationary}^k$$
+    * where $N$ is the number of stationary phases
+
 
 ```cpp
     bool dilatation = false;
@@ -1575,7 +1674,7 @@ define a pointer list of `surfaceScalarField` variables with the size of phase s
   * if there is a valid $\nabla \cdot \mathbf{U}$ of flux phases, in other words, $\nabla \cdot \mathbf{U} \neq 0$, then
     * `dilatation` is `true` 
 
-##### The loop to solve the equation
+### The loop to solve the equation
 
 ```cpp
     for (int acorr=0; acorr<nAlphaCorr; acorr++)
@@ -1585,8 +1684,9 @@ define a pointer list of `surfaceScalarField` variables with the size of phase s
 ```
 
 * for $acorr < nAlphaCorr$, to solve $\alpha$ equation
+* `nAlphaCorr` is to control the most outside loop
 
-###### Source
+#### Source
 
 ```cpp
         PtrList<volScalarField::Internal> Sps(phases().size());
@@ -1677,25 +1777,28 @@ define a pointer list of `surfaceScalarField` variables with the size of phase s
 ```
 
 * define a pointer list of `volScalarField` variables internal fields, `Sps` and `Sus`
-* for every flux phases:
-  * define and get $\alpha$
+* for every `fluxPhases`, `fluxPhases` is either solvePhases (the size of solvePhases is 1) or movingPhases (the size of solvePhases is not 1):
+  * define and get $\alpha^k$
   * get index of current phase `phasei`
   * initialize `Sps` and `Sus`:
     * $Sp^k = 0$
-    * $Su^k = \min(\alpha^k, 1) \nabla \mathbf{U}^k_{absolute}$
+    * $Su^k = \min(\alpha^k, 1) \nabla \mathbf{U}^k_{absolute}$, `absolute()` is to get the absolute velocity
     * if `dilatation` is `true`, namely for one phase, $\nabla \cdot \mathbf{U} \neq 0$
-      * initialize `dgdt`:
+      * initialize `dgdt`, the dilatation rate source term:
         * $$dgdt = 0$$
-      * for every phase:
-        * define and get current phase (`phase2`) volume fraction as $\alpha_2$
-        * if `phase2` is not `phase`
-          * if $\nabla \cdot \mathbf{U} \neq 0$ for `phase`, then
-            * $$dgdt = dgdt + \alpha_2 \nabla \cdot \mathbf{U}^k $$
+      * for every phasej:
+        * define and get current phasej (`phase2`) volume fraction as $\alpha_2$
+        * if `phase2` is not $k$th `phase`
+          * if $\nabla \cdot \mathbf{U} \neq 0$ for $k$th `phase`, then
+            * $$dgdt = dgdt + \alpha_2 \nabla \cdot \left(\frac{\partial \alpha^k}{\partial t} + \nabla (\alpha^k \phi^k)\right) $$
           * if $\nabla \cdot \mathbf{U} \neq 0$ for `phase2`, then
-            * $$dgdt = dgdt - \alpha \nabla \cdot \mathbf{U}^l$$
-        * namely,
-          * $$dgdt = \sum_{k = 1}^n \sum_{l = 1, l \neq k}^N \alpha_l \nabla \cdot \mathbf{U}^k - \sum_{k = 1}^N \sum_{l = 1, l \neq k}^n \alpha_k \nabla \cdot \mathbf{U}^l$$
-          * where, $n$ is the number of phases whose $\nabla \cdot \mathbf{U} \neq 0$ while $N$ is the total number of flux phases
+            * $$dgdt = dgdt - \alpha^k \nabla \cdot \left(\frac{\partial \alpha^l}{\partial t} + \nabla (\alpha^l \phi^l)\right)$$
+        * namely, divide the phases in fluxPhases into two ordered groups:
+          * the first group owning $n$ phases, holds $\nabla \cdot \mathbf{U} \neq 0$, ordered from 1 to $n$; 
+          * the second group owning $m$ phases, holds $\nabla \cdot \mathbf{U} = 0$, ordered from $n+1$ to $n + m = N$; 
+          * $N$ is the total number of phases in fluxPhases, so
+            * $$dgdt = \sum_{k = 1}^n \sum_{l = 1, l \neq k}^N \alpha^l \nabla \cdot \left(\frac{\partial \alpha^k}{\partial t} + \nabla (\alpha^k \phi^k)\right) - \sum_{k = 1}^N \sum_{l = 1, l \neq k}^n \alpha^k \nabla \cdot \left(\frac{\partial \alpha^l}{\partial t} + \nabla (\alpha^l \phi^l)\right) \\= \sum_{k = 1}^n \sum_{l = 1, l \neq k}^N \alpha^l \nabla \cdot \left(\frac{\partial \alpha^k}{\partial t} + \nabla (\alpha^k \phi^k)\right) - \sum_{k = 1}^n \sum_{l = 1, l \neq k}^n \alpha^k \nabla \cdot \left(\frac{\partial \alpha^l}{\partial t} + \nabla (\alpha^l \phi^l)\right) - \sum_{k = n+1}^N \sum_{l = 1}^n \alpha^k \nabla \cdot \left(\frac{\partial \alpha^l}{\partial t} + \nabla (\alpha^l \phi^l)\right)$$
+            * there is $n(N-1)$ terms minus $n(n-1) + nm$ terms
       * get $Sp$ and $Su$ for current phase
         * $Sp^k$ and $Su^k$
       * for $dgdt$ of every grid cell $i$:
@@ -1705,7 +1808,16 @@ define a pointer list of `surfaceScalarField` variables with the size of phase s
         * else, if $dgdt[i] < 0$
           * $$Sp^k[i] = Sp^k[i] + \frac{dgdt[i]}{\max(\alpha^k[i], 10^{-4})}$$
 
-###### Controls
+**ATTENTION**:
+
+`phase.divU()` is not $\nabla \cdot \mathbf{U}$, it is defined in `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MovingPhaseModel\MovingPhaseModel.C` and `applications\solvers\multiphase\multiphaseEulerFoam\phaseSystems\phaseModel\MovingPhaseModel\MovingPhaseModel.H`, is to return the phase dilatation rate `(d(alpha)/dt + div(alpha*phi))` $\left(\frac{\partial \alpha}{\partial t} + \nabla (\alpha \phi)\right)$ or set the phase dilatation rate `(d(alpha)/dt + div(alpha*phi))`
+it is set in `applications\solvers\multiphase\multiphaseEulerFoam\multiphaseEulerFoam\pUf\pEqn.H` as 
+
+$$divU = -pEqnComps[phase.index()] \cdot p_{rgh}$$
+
+**So $dgdt \neq 0$**
+
+#### Controls
 
 ```cpp
         tmp<volScalarField> trSubDeltaT;
@@ -1758,7 +1870,7 @@ $$
 localRSubDeltaT = \frac{nAlphaSubCycles}{\Delta t}
 $$
 
-###### Solving loop
+#### Solving loop
 
 ```cpp
         for
@@ -1777,7 +1889,7 @@ $$
 
 solve the equations in the subcycle
 
-Generate face-alphas
+##### Generate face-alphas
 
 ```cpp
             // Generate face-alphas
@@ -1805,9 +1917,9 @@ Generate face-alphas
   * for every phase:
     * get $k$th `phase`
     * set `alphafs` using interpolate with upwind schemes:
-      * $\alpha_f^k$
+      * $(\alpha^k)_f$
 
-Create correction fluxes
+##### Create correction fluxes
 
 ```cpp
             // Create correction fluxes
@@ -1832,11 +1944,11 @@ Create correction fluxes
             }
 ```
 
-* defien correction fluxes `alphaPhiCorrs`
+* defien correction fluxes `alphaPhiCorrs` with size of phase size, fluxes of both moving and stationary phases will be stored here
 * if the number of phases to be solved is larger than 1, then:
   * for every stationary phases
     * get stationary phase
-    * set `alphaPhiCorrs` with upwind schemes
+    * set `alphaPhiCorrs` for stationary phases with upwind schemes
       * $$alphaPhiCorrs = -\phi$$
 
 ```cpp
@@ -1923,25 +2035,25 @@ Create correction fluxes
 
 * for every `fluxPhase`:
   * define and get $\alpha^k$
-  * set flux correction `alphaPhiCorrs`
+  * set flux correction `alphaPhiCorrs` for fluxPhases or moving phases
     * $$alphaPhiCorrs = \phi$$
-  * get `alphaPhiCorrs` fro current phase
+  * get `alphaPhiCorrs` for current phase
     * $$alphaPhiCorr = alphaPhiCorr^k = \phi^k$$
-  * for every phase:
+  * for every phase l:
     * get `phase2`, indexed by `l`
     * get `alpha2`, $\alpha^l$
     * if $l = k$, namely `phase2` is `phase`, then
       * stop this step and enter next step of the loop
     * if $l \neq k$, namely, different phases
-      * define `phir` as
-        * $$phir = \phi^k - \phi^l$$
-      * get `cAlpha` from the list with the name of `phase` and `phase2`
+      * define the relative flux `phir` as
+        * $$phir = \phi_r = \phi^k - \phi^l$$
+      * get `cAlpha` or $c_\alpha$ from the list with the name of `phase` and `phase2`
       * if `cAlpha` is not end, then
         * defien `phic`
-          * $$phic = \frac{\|\phi\| + \|phir\|}{\|\mathbf{S}_f\|} = \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}$$
+          * $$phic = \phi_c = \frac{\|\phi\| + \|\phi_r\|}{\|\mathbf{S}_f\|} = \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}$$
         * calculate `phir`
-          * $$phir = phir + \min(cAlpha phic, \max(phic)) nHatf$$
-          * $$phir = \phi^k - \phi^l + \min\left(c_{\alpha} \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}, \max(\frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|})\right) \times \left[\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right]$$
+          * $$\phi_r = \phi_r + \min(c_\alpha \phi_c, \max(\phi_c)) \hat{n}_f$$
+          * $$\phi_r = \phi^k - \phi^l + \min\left(c_{\alpha} \frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|}, \max(\frac{\|\phi\| + \|\phi^k - \phi^l\|}{\|\mathbf{S}_f\|})\right) \times \left[\frac{(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f}{\|(\alpha_2)_f \nabla (\alpha_1)_f - (\alpha_1)_f \nabla (\alpha_2)_f\| + deltaN\_} \cdot \mathbf{S}_f\right]$$
       * define word `phirScheme`
       * calculate `alphaPhiCorr` as
         * $$alphaPhiCorr = alphaPhiCorr + phir = \phi + \phi_r$$
@@ -1979,7 +2091,37 @@ flux
 
 the second parameter is to provide mesh information
 
-limit flux sums
+`max(phic)` can be found in `src\OpenFOAM\fields\FieldFields\FieldField\FieldFieldFunctions.C`, seem to return the maximum of `phic`, as
+
+```cpp
+template<template<class> class Field, class Type>
+Type max(const FieldField<Field, Type>& f)
+{
+    label i = 0;
+    while (i < f.size() && !f[i].size()) i++;
+
+    if (i < f.size())
+    {
+        Type Max(max(f[i]));
+
+        for (label j=i+1; j<f.size(); j++)
+        {
+            if (f[j].size())
+            {
+                Max = max(max(f[j]), Max);
+            }
+        }
+
+        return Max;
+    }
+    else
+    {
+        return pTraits<Type>::min;
+    }
+}
+```
+
+##### Limit the flux sums
 
 ```cpp
             if (solvePhases.size() > 1)
@@ -2003,7 +2145,7 @@ limit flux sums
     * insert stationary phases into `fixedAlphaPhiCorrs`
   * using `MULES` to limit
 
-solve
+##### solve
 
 ```cpp
             forAll(solvePhases, solvePhasei)
@@ -2038,12 +2180,12 @@ solve
 * for every phases to be solved
   * get $\alpah^k$
   * define $alphaPhi = alphaPhiCorr^k$, then
-  * $$alphaPhi = alphaPhi + \phi$$
+  * $$alphaPhi = alphaPhiCorr^k + \phi$$
   *  correct flow with `alphaPhi`
-  *  use `MULES` to solve
-  *  if `alphaSubCycle.index()` = 1,
+  *  use `MULES` to solve explicitly
+  *  if `alphaSubCycle.index()` = 1, for the first iteration
      * $$phase.alphaPhiRef() = alphaPhi$$
-  * else
+  * else, for the following iteration
     * $$phase.alphaPhiRef() = phase.alphaPhiRef() + alphaPhi$$
 
 ```cpp
