@@ -108,6 +108,12 @@
         "FieldFieldFunctions.C": "cpp",
         "constantDiameter.C": "cpp",
         "diameterModel.C": "cpp",
-        "diameterModelNew.C": "cpp"
+        "diameterModelNew.C": "cpp",
+        "sphericalDiameter.C": "cpp",
+        "surfaceTensionModel.C": "cpp",
+        "constantSurfaceTensionCoefficient.C": "cpp",
+        "swarmCorrection.C": "cpp",
+        "virtualMassModel.C": "cpp",
+        "constantLiftCoefficient.C": "cpp"
     }
 }
