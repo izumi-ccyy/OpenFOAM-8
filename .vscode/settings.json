@@ -114,6 +114,7 @@
         "constantSurfaceTensionCoefficient.C": "cpp",
         "swarmCorrection.C": "cpp",
         "virtualMassModel.C": "cpp",
-        "constantLiftCoefficient.C": "cpp"
+        "constantLiftCoefficient.C": "cpp",
+        "mixtureKEpsilon.C": "cpp"
     }
 }
